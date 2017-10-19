@@ -11,20 +11,22 @@ module error_display (
       counter ctr (#SIZE(2), #DIV(16), .clk(clk), .rst(rst));
       seven_seg segs[4];
   
-      //
       sig temp_value [4][7];
   
       always {
           segs.char = {4d0, 4d0, 4d0, c{b0, num}};
-    
+          
+          // outputs ErrX as an error is detected
           if (error) {
               segs.char = {4d5, 4d6, 4d6, c{b0, num}};
           }
-    
+          
+          // output donE when result = 1
           if (result) {
               segs.char = {4d7, 4d8, 4d9, 4d5};
           }
     
+          // connecting seg and sel outputs required for IO segments
           temp_value[3:1] = segs.segs[3:1];
           temp_value[0] = segs.segs[0];
           seg = ~temp_value[ctr.value];
