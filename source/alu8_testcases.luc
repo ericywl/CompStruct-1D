@@ -1,0 +1,300 @@
+module alu8_testcases (
+        input clk,
+        input rst,
+        input alu8_out[8],
+        input trigger,
+        output temp_alufn[6],
+        output alu8_in[2][8],
+        output result[2],
+        output error,
+        output num[3]
+    ) {
+
+    sig cases[4][3][8];
+    sig alufn[6];
+  
+  .clk(clk), .rst(rst) {
+    dff alufn_select[6];
+    dff count[2];
+    dff timer[25];
+    
+    fsm state = {IDLE, TEST1, TEST2, TEST3, TEST4, ROUND, DONE};
+  }
+
+    // test cases for the testing
+    // each cases are selected carefully to showcase any potential errors
+    always {
+        // alufn_select is used to select the operation to test
+        case(alufn_select.q) {
+            5d1:
+                // ADD
+                alufn = b000000;
+                cases = {
+                    {8h02, 8h02, 8h04},     // 2 + 2 = 4    
+                    {8h00, 8h3e, 8h3e},     // 0 + 62 = 62
+                    {8h78, 8h07, 8h7f},     // 120 + 7 = 127
+                    {8h7f, 8h01, 8h80}      // 127 + 1 = 128, overflow
+                };
+
+            5d2:
+                // SUB
+                alufn = b000001;
+                cases = {
+                    {8h0b, 8h6f, 8h9c},     // 11 - 111 = -100    
+                    {8h88, 8hec, 8h9c},     // -120 - (-20) = -100
+                    {8h80, 8h07, 8h79},     // -128 - 7 = -135, underflow
+                    {8h1c, 8h9c, 8h80}      // 28 - (-100) = 128, overflow
+                };
+
+            5d3:
+                // MUL
+                alufn = b000010;
+                cases = {
+                    {8h08, 8h02, 8h10},     // 8 * 2 = 16
+                    {8hfd, 8h28, 8h88},     // -3 * 40 = -120
+                    {8hf4, 8hf7, 8h6c},     // -12 * -9 = 108
+                    {8h64, 8h03, 8h2c}      // 100 * 3 = 300, overflow
+                };
+
+            5d4:
+                // AND
+                alufn = b011000;
+                cases = {
+                    {8h01, 8h00, 8h00},     // b0000 0001 & b0000 0000 = b0000 0000
+                    {8hb5, 8h5a, 8h10},     // b1011 0101 & b0101 1010 = b0001 0000
+                    {8h7b, 8h6e, 8h6a},     // b0111 1011 & b0110 1110 = b0110 1010
+                    {8hff, 8hff, 8hff}      // b1111 1111 & b1111 1111 = b1111 1111
+                };
+
+            5d5:
+                // OR
+                alufn = b011110;
+                cases = {
+                    {8h01, 8h00, 8h01},     // b0000 0001 & b0000 0000 = b0000 0001
+                    {8h55, 8haa, 8hff},     // b0101 0101 & b1010 1010 = b1111 1111
+                    {8hff, 8hff, 8hff},     // b1111 1111 & b1111 1111 = b1111 1111
+                    {8hc4, 8h49, 8hcd}      // b1100 0100 & b0100 1001 = b1100 1101
+                };
+
+            5d6:
+                // XOR
+                alufn = b010110;
+                cases = {
+                    {8h01, 8h00, 8h01},     // b0000 0001 & b0000 0000 = b0000 0001
+                    {8h55, 8haa, 8hff},     // b0101 0101 & b1010 1010 = b1111 1111
+                    {8hf0, 8hf0, 8h00},     // b1111 0000 & b1111 0000 = b0000 0000
+                    {8h93, 8h94, 8h07}      // b1001 0011 & b1001 0100 = b0000 0111
+                };
+
+            5d7:
+                // NOR
+                alufn = b010001;
+                cases = {
+                    {8h01, 8h00, 8hfe},     // b0000 0001 & b0000 0000 = b1111 1110
+                    {8h55, 8haa, 8h00},     // b0101 0101 & b1010 1010 = b0000 0000
+                    {8hf0, 8hf0, 8h0f},     // b1111 0000 & b1111 0000 = b0000 1111
+                    {8h4b, 8h65, 8h90}      // b0100 1011 & b0110 0101 = b1001 0000
+                };
+
+            5d8:
+                // NAND
+                alufn = b010111;
+                cases = {
+                    {8h01, 8h00, 8hff},     // b0000 0001 & b0000 0000 = b1111 1111 
+                    {8h55, 8haa, 8hff},     // b0101 0101 & b1010 1010 = b1111 1111
+                    {8hf0, 8hf0, 8h0f},     // b1111 0000 & b1111 0000 = b0000 1111
+                    {8h26, 8hb8, 8hdf}      // b0010 0110 & b1011 1000 = b1101 1111
+                };
+            5d9:
+                // "A"
+                // output A regardless
+                alufn = b011010;
+                cases = {
+                    {8h26, 8h04, 8h26},     
+                    {8hff, 8hff, 8hff},
+                    {8he6, 8hdd, 8he6},
+                    {8h5b, 8ha6, 8h5b}
+                };
+
+            5d10:
+                // SHL
+                alufn = b100000;
+                cases = {
+                    {8h6e, 8h02, 8hb8},     // b0110 1110 << 2 = b1011 1000
+                    {8h08, 8h07, 8h00},     // b0000 1000 << 7 = b0000 0000
+                    {8hca, 8h00, 8hca},     // b1100 1010 << 0 = b1100 1010
+                    {8hdf, 8h01, 8hbe}      // b1101 1111 << 1 = b1011 1110
+                };
+
+            5d11:
+                // SHR
+                alufn = b100001;
+                cases = {
+                    {8hb5, 8h01, 8h5a},     // b1011 0101 >> 1 = b0101 1010     
+                    {8ha3, 8h03, 8h14},     // b1010 0011 >> 3 = b0001 0100 
+                    {8he1, 8h07, 8h01},     // b1110 0001 >> 7 = b0000 0001
+                    {8h78, 8h00, 8h78}      // b0111 1000 >> 0 = b0111 1000
+                };
+
+            5d12:
+                // SRA
+                alufn = b100011;
+                cases = {
+                    {8h95, 8h04, 8hf9},     // b1001 0101 >>> 4 = b1111 1001
+                    {8h6e, 8h07, 8h00},     // b0110 1110 >>> 7 = b0000 0000
+                    {8h90, 8h02, 8he4},     // b1001 0000 >>> 2 = b1110 0100
+                    {8h83, 8h00, 8h83}      // b1000 0011 >>> 0 = b1000 0011
+                };
+
+            5d13:
+                // CMPEQ
+                alufn = b110011;
+                cases = {
+                    {8h7f, 8h7f, 8h01},     // 127 = 127
+                    {8hc0, 8hc0, 8h01},     // -64 = -64
+                    {8h00, 8h00, 8h01},     // 0 = 0
+                    {8h9c, 8h0a, 8h00}      // -100 != 10
+                };
+
+            5d14:
+                // CMPLT
+                alufn = b110101;
+                cases = {
+                    {8h01, 8h7f, 8h01},      // 1 < 127
+                    {8hc0, 8h01, 8h01},      //-64 < 1
+                    {8h01, 8hc0, 8h00},      // 1<-64
+                    {8h90, 8hc0, 8h01}       // -111<-64 
+                };
+
+            5d15:
+                // CMPLE
+                alufn = b110111;
+                cases = {
+                    {8h01, 8h7f, 8h01},      // 1 < 127
+                    {8h04, 8h04, 8h01},      // 4 == 4
+                    {8hc0, 8hc0, 8h01},      // -64 == -64
+                    {8h90, 8hc0, 8h01}       // -111<-64 
+                };
+
+            default:
+                alufn = b000000;
+                cases = {
+                    {8h00, 8h00, 8h00},
+                    {8h00, 8h00, 8h00},
+                    {8h00, 8h00, 8h00},
+                    {8h00, 8h00, 8h00}
+                };
+
+          }
+    
+        // error is for displaying Err on IO segments if there's any error
+        // num is for displaying the current test number ie. 1, 2, 3, 4
+        // result is for displaying success for each round of testing and also donE when every test is successful
+        // temp_alufn is for the alu8's alufn and also for displaying
+        // alu8_in is the two inputs for alu8, A and B
+        error = b0;
+        num = 3b0;
+        result = 2b0;
+        temp_alufn = 6b0;
+        alu8_in = 2x{{8h0}};
+        
+        case(state.q) {
+            // starts at the IDLE state and only transitions to TEST1 when button is pressed
+            state.IDLE:
+                // timer is 
+                timer.d = 25x{0};
+                count.d = b0;
+                error = b0;
+                num = 3b0;
+                result = b0;
+                alufn_select.d = 4d1;
+                if (trigger) {
+                    state.d = state.TEST1;
+                }
+        
+            // TEST1 to TEST4 runs through the test cases for each particular opcode at constant speed
+            // if there are any errors, the test will stop at where it is
+            state.TEST1:
+                timer.d = timer.q + 1;
+                temp_alufn = alufn;
+                alu8_in = cases[count.q][2:1];
+                num = 3b1;
+                if (timer.q == 25x{1}) {
+                    if (alu8_out == cases[count.q][0]) {
+                        count.d = count.q + 1;
+                        state.d = state.TEST2;
+                    } else {
+                        error = b1;
+                    }
+                }
+            
+            state.TEST2:
+                timer.d = timer.q + 1;
+                temp_alufn = alufn;
+                alu8_in = cases[count.q][2:1];
+                num = 3b10;
+                if (timer.q == 25x{1}) {
+                    if (alu8_out == cases[count.q][0]) {
+                        count.d = count.q + 1;
+                        state.d = state.TEST3;
+                    } else {
+                        error = b1;
+                    }
+                }
+        
+            state.TEST3:
+                timer.d = timer.q + 1;
+                temp_alufn = alufn;
+                alu8_in = cases[count.q][2:1];
+                num = 3b11;
+                if (timer.q == 25x{1}) {
+                    if (alu8_out == cases[count.q][0]) {
+                        count.d = count.q + 1;
+                        state.d = state.TEST4;
+                    } else {
+                        error = b1;
+                    }
+                }
+        
+            state.TEST4:
+                timer.d = timer.q + 1;
+                temp_alufn = alufn;
+                alu8_in = cases[count.q][2:1];
+                num = 3b100;
+                if (timer.q == 25x{1}) {
+                    if (alu8_out == cases[count.q][0]) {
+                        count.d = count.q + 1;
+                        state.d = state.ROUND;
+                    } else {
+                        error = b1;
+                    }
+                }
+            
+            // if all the operations are not done yet, increase alufn_select by 1 and start at TEST1
+            // this starts the TEST1 with a different operation and test cases that are crafted for that particular operation
+            state.ROUND:
+                timer.d = timer.q + 1;
+                count.d = 0;
+                result = 2b10;
+                num = 3b0;
+                if (timer.q == 25x{1}) {
+                    alufn_select.d = alufn_select.q + 1;
+                    if (alufn_select.q == 5d15) {
+                        state.d = state.DONE;
+                    } else {
+                        state.d = state.TEST1;
+                    }
+                }
+            
+            // if all the operations are done, display donE in IO segments
+            state.DONE:
+                count.d = 0;
+                alufn_select.d = 0;
+                result = 2b01;
+                error = b0;
+                num = 3b0;
+            }
+
+    }
+    
+}
