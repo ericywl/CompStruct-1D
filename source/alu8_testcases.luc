@@ -5,7 +5,7 @@ module alu8_testcases (
         input trigger,
         output temp_alufn[6],
         output alu8_in[2][8],
-        output result[2],
+        output result,
         output error,
         output num[3]
     ) {
@@ -275,7 +275,7 @@ module alu8_testcases (
             state.ROUND:
                 timer.d = timer.q + 1;
                 count.d = 0;
-                result = 2b10;
+                result = b0;
                 num = 3b0;
                 if (timer.q == 25x{1}) {
                     alufn_select.d = alufn_select.q + 1;
@@ -291,7 +291,7 @@ module alu8_testcases (
                 timer.d = 0;
                 count.d = 0;
                 alufn_select.d = 0;
-                result = 2b01;
+                result = b1;
                 error = b0;
                 num = 3b0;
     

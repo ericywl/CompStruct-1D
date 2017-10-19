@@ -77,15 +77,12 @@ module mojo_top (
             // changing error_display module inputs
             err_dis.error = test.error;
             err_dis.num = test.num;
-            err_dis.result = test.result[0];
+            err_dis.result = test.result;
         
             // show the two inputs of testing and the ALUFN
             io_led[2] = test.alu8_in[1];
             io_led[1] = test.alu8_in[0];
             io_led[0] = test.temp_alufn;
-        
-            // this LED indicates that one particular operation's test is successful
-            led[7] = test.result[1];
         
             // display error and current test number
             io_seg = err_dis.seg;
