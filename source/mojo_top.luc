@@ -84,7 +84,7 @@ module mojo_top (
             io_led[1] = test.alu8_in[0];
             io_led[0] = test.temp_alufn;
         
-            // display error and current test number
+            // display error and current test number on IO segments
             io_seg = err_dis.seg;
             io_sel = err_dis.sel;
         }
