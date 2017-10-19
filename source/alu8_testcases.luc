@@ -15,10 +15,10 @@ module alu8_testcases (
   
   .clk(clk), .rst(rst) {
     dff alufn_select[6];
-    dff count[2];
+    dff count[3];
     dff timer[25];
     
-    fsm state = {IDLE, TEST1, TEST2, TEST3, TEST4, ROUND, DONE};
+    fsm state = {IDLE, TEST1, TEST2, TEST3, TEST4, ROUND, DONE, ERROR};
   }
 
     // test cases for the testing
@@ -40,7 +40,7 @@ module alu8_testcases (
                 // SUB
                 alufn = b000001;
                 cases = {
-                    {8h0b, 8h6f, 8h9c},     // 11 - 111 = -100    
+                    {8h0b, 8h6f, 8h9c},     // 11 - 111 = -100  
                     {8h88, 8hec, 8h9c},     // -120 - (-20) = -100
                     {8h80, 8h07, 8h79},     // -128 - 7 = -135, underflow
                     {8h1c, 8h9c, 8h80}      // 28 - (-100) = 128, overflow
@@ -218,13 +218,13 @@ module alu8_testcases (
                 timer.d = timer.q + 1;
                 temp_alufn = alufn;
                 alu8_in = cases[count.q][2:1];
-                num = 3b1;
+                num = count.q + 1;
                 if (timer.q == 25x{1}) {
                     if (alu8_out == cases[count.q][0]) {
                         count.d = count.q + 1;
                         state.d = state.TEST2;
                     } else {
-                        error = b1;
+                        state.d = state.ERROR;
                     }
                 }
             
@@ -232,13 +232,13 @@ module alu8_testcases (
                 timer.d = timer.q + 1;
                 temp_alufn = alufn;
                 alu8_in = cases[count.q][2:1];
-                num = 3b10;
+                num = count.q + 1;
                 if (timer.q == 25x{1}) {
                     if (alu8_out == cases[count.q][0]) {
                         count.d = count.q + 1;
                         state.d = state.TEST3;
                     } else {
-                        error = b1;
+                        state.d = state.ERROR;
                     }
                 }
         
@@ -246,13 +246,13 @@ module alu8_testcases (
                 timer.d = timer.q + 1;
                 temp_alufn = alufn;
                 alu8_in = cases[count.q][2:1];
-                num = 3b11;
+                num = count.q + 1;
                 if (timer.q == 25x{1}) {
                     if (alu8_out == cases[count.q][0]) {
                         count.d = count.q + 1;
                         state.d = state.TEST4;
                     } else {
-                        error = b1;
+                        state.d = state.ERROR;
                     }
                 }
         
@@ -260,13 +260,13 @@ module alu8_testcases (
                 timer.d = timer.q + 1;
                 temp_alufn = alufn;
                 alu8_in = cases[count.q][2:1];
-                num = 3b100;
+                num = count.q + 1;
                 if (timer.q == 25x{1}) {
                     if (alu8_out == cases[count.q][0]) {
                         count.d = count.q + 1;
                         state.d = state.ROUND;
                     } else {
-                        error = b1;
+                        state.d = state.ERROR;
                     }
                 }
             
@@ -288,13 +288,20 @@ module alu8_testcases (
             
             // if all the operations are done, display donE in IO segments
             state.DONE:
+                timer.d = 0;
                 count.d = 0;
                 alufn_select.d = 0;
                 result = 2b01;
                 error = b0;
                 num = 3b0;
+    
+            state.ERROR:
+                timer.d = 0;
+                temp_alufn = alufn;
+                alu8_in = cases[count.q][2:1];
+                num = count.q + 1;
+                error = b1;
             }
-
     }
     
 }
