@@ -5,6 +5,7 @@ module seven_seg (
   
     always {
         case (char) {
+            // numbers and - for test number
             0: segs = 7b1000000;    // -
             1: segs = 7b0000110;    // 1
             2: segs = 7b1011011;    // 2
