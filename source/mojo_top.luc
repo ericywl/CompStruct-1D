@@ -63,6 +63,8 @@ module mojo_top (
         io_led[2] = io_dip[2];
         io_led[1] = io_dip[1];
         io_led[0][5:0] = io_dip[0][5:0];
+        
+        // the Mojo LED will always show alu8's alu output
         led = alu8.alu;
         
         if (io_dip[0][7]) {
