@@ -26,6 +26,11 @@ module alu_bool8 (
                 // "A"
                 // output A regardless
                 bool = a;
+            
+            b1100:
+                // "B"
+                // output B regardless
+                bool = b;
 
             b0001:
                 // NOR
@@ -34,6 +39,11 @@ module alu_bool8 (
             b0111:
                 // NAND
                 bool = ~a | ~b;
+            
+            b1111:
+                // XORC
+                // check if there's odd number of 1's in A
+                bool = ^a;
             }
         }
     }

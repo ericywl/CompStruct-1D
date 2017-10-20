@@ -117,6 +117,28 @@ module alu8_testcases (
                 };
 
             5d10:
+                // "B"
+                // output B regardless
+                alufn = b011100;
+                cases = {
+                    {8h26, 8h04, 8h04},     
+                    {8hff, 8hff, 8hff},
+                    {8he6, 8hdd, 8hdd},
+                    {8h5b, 8ha6, 8ha6}
+                };
+        
+            5d11:
+                // XORC
+                // check odd number of 1s in A
+                alufn = b011111;
+                cases = {
+                    {8h55, 8h00, 8h26},    // ^ b0101 0101 = 0   
+                    {8h26, 8h00, 8hff},    // ^ b0010 0110 = 1
+                    {8hdf, 8h00, 8he6},    // ^ b1101 1111 = 1
+                    {8h5b, 8h00, 8h5b}     // ^ b0000 0000 = 0
+                };
+        
+            5d12:
                 // SHL
                 alufn = b100000;
                 cases = {
@@ -126,7 +148,7 @@ module alu8_testcases (
                     {8hdf, 8h01, 8hbe}      // b1101 1111 << 1 = b1011 1110
                 };
 
-            5d11:
+            5d13:
                 // SHR
                 alufn = b100001;
                 cases = {
@@ -136,7 +158,7 @@ module alu8_testcases (
                     {8h78, 8h00, 8h78}      // b0111 1000 >> 0 = b0111 1000
                 };
 
-            5d12:
+            5d14:
                 // SRA
                 alufn = b100011;
                 cases = {
@@ -146,7 +168,7 @@ module alu8_testcases (
                     {8h83, 8h00, 8h83}      // b1000 0011 >>> 0 = b1000 0011
                 };
 
-            5d13:
+            5d15:
                 // CMPEQ
                 alufn = b110011;
                 cases = {
@@ -156,7 +178,7 @@ module alu8_testcases (
                     {8h9c, 8h0a, 8h00}      // -100 != 10
                 };
 
-            5d14:
+            5d16:
                 // CMPLT
                 alufn = b110101;
                 cases = {
@@ -166,7 +188,7 @@ module alu8_testcases (
                     {8h90, 8hc0, 8h01}       // -111<-64 
                 };
 
-            5d15:
+            5d17:
                 // CMPLE
                 alufn = b110111;
                 cases = {
@@ -279,7 +301,7 @@ module alu8_testcases (
                 num = 3b0;
                 if (timer.q == 25x{1}) {
                     alufn_select.d = alufn_select.q + 1;
-                    if (alufn_select.q == 5d15) {
+                    if (alufn_select.q == 5d17) {
                         state.d = state.DONE;
                     } else {
                         state.d = state.TEST1;
