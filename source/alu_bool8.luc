@@ -41,7 +41,8 @@ module alu_bool8 (
                 bool = ~a | ~b;
             
             b1111:
-                // XORC
+                // XORCP
+                // XOR compression
                 // check if there's odd number of 1's in A
                 bool = ^a;
             }
