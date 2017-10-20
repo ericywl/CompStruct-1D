@@ -1,5 +1,5 @@
 # Mojo_1D
-CompStruct 1D Pojek
+CompStruct 1D Project
 
 8-bit ALU with the following functionalities
 
