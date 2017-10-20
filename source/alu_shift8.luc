@@ -4,23 +4,38 @@ module alu_shift8 (
         input alufn[6],
         output shift[8]
     ) {
+ 
+    sig temp[4];
     
     always {
-        shift = a;
-
+        temp = 4b1000 - b[2:0];
+    
         // using shift operators to shift A by B bits
-        case (alufn[1:0]) {
-            b00:
+        case (alufn[2:0]) {
+            b000:
                 // SHL
                 shift = a << b[2:0];
 
-            b01:
+            b001:
                 // SHR
                 shift = a >> b[2:0];
 
-            b11:
+            b011:
                 // SRA
                 shift = $signed(a) >>> b[2:0];
+        
+            b100:
+                // RL
+                // rotate no-carry leftwards
+                shift = (a << b[2:0]) | (a >> temp);
+        
+            b101:
+                // RR
+                //rotate no-carry rightwards
+                shift = (a >> b[2:0]) | (a << temp);
+        
+            default:
+                shift = a;
         }
     }
 }
