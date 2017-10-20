@@ -33,7 +33,7 @@ module alu8_testcases (
                     {8h02, 8h02, 8h04},     // 2 + 2 = 4    
                     {8h00, 8h3e, 8h3e},     // 0 + 62 = 62
                     {8h78, 8h07, 8h7f},     // 120 + 7 = 127
-                    {8h7f, 8h01, 8h80}      // 127 + 1 = 128, overflow
+                    {8h7f, 8h01, 8h80}      // 127 + 1 = 128, overflow so -128
                 };
 
             5d2:
@@ -42,8 +42,8 @@ module alu8_testcases (
                 cases = {
                     {8h0b, 8h6f, 8h9c},     // 11 - 111 = -100  
                     {8h88, 8hec, 8h9c},     // -120 - (-20) = -100
-                    {8h80, 8h07, 8h79},     // -128 - 7 = -135, underflow
-                    {8h1c, 8h9c, 8h80}      // 28 - (-100) = 128, overflow
+                    {8h80, 8h07, 8h79},     // -128 - 7 = -135, overflow so 121
+                    {8h1c, 8h9c, 8h80}      // 28 - (-100) = 128, overflow so -128
                 };
 
             5d3:
