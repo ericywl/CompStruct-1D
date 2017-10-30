@@ -1,7 +1,7 @@
 # Mojo_1D
 CompStruct 1D Project
 
-8-bit ALU with the following functionalities
+8-bit ALU with the following functionalities:
 
 
 ALUFN  | Operation | Type    | Description
