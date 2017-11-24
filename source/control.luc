@@ -1,0 +1,70 @@
+module control #(
+        SIZE = 5 : SIZE > 0,
+        BIT_NUM = SIZE * 24
+    )(
+        input clk,    // clock
+        input rst,    // reset
+        input start,
+        input button,
+        input start_color[BIT_NUM],
+        output colors_out[BIT_NUM]
+    ) {
+    
+    const MSB_INDEX = BIT_NUM - 1;
+    
+    .clk(clk), .rst(rst) {
+            fsm state = {START, SHL, SHR, STOP};
+            fsm buttonstate = {UNPRESSED, PRESSED};
+       
+            dff valid_press;        // check for valid button press
+            dff timer[25];          // used to time the shift 
+            dff temp_colors[BIT_NUM];
+    }
+    
+    always {
+        timer.d = timer.q + 1;
+        
+        
+        if (button) {
+            buttonstate.d = buttonstate.PRESSED;
+        }
+        
+        case (buttonstate.q) {
+            buttonstate.UNPRESSED:
+                if (timer.q == 25x{1}) {
+                    case(state.q) {
+                        state.START:
+                            if (start) {
+                                temp_colors.d = start_color;
+                                state.d = state.SHL;
+                            }
+                            
+                        state.SHL:
+                            temp_colors.d = temp_colors.q << 24;
+                            if (valid_press.q) {
+                                temp_colors.d = temp_colors.q;
+                                state.d = state.STOP;
+                            } else if (temp_colors.q[MSB_INDEX:MSB_INDEX - 23] != Color.BLACK) {
+                                temp_colors.d = temp_colors.q >> 24;
+                                state.d = state.SHR;
+                            }
+                            
+                        state.SHR:
+                            temp_colors.d = temp_colors.q >> 24;
+                            if (valid_press.q) {
+                                temp_colors.d = temp_colors.q;
+                                state.d = state.STOP;
+                            } else if (temp_colors.q[23:0] != Color.BLACK) {
+                                temp_colors.d = temp_colors.q << 24;
+                                state.d = state.SHL;
+                            }    
+                    }
+                }
+                
+        buttonstate.PRESSED:
+            temp_colors.d = temp_colors.q;
+        }
+            
+        colors_out = temp_colors.q;
+    }
+}

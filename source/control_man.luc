@@ -1,0 +1,18 @@
+module control_man #(
+        SIZE = 2 : SIZE > 0
+    )(
+        input clk,    // clock
+        input rst    // reset
+    ) {
+    
+    .clk(clk), .rst(rst) {
+        control ctl1(#SIZE(SIZE));
+        
+        dff led_storage[11][SIZE * 24];
+    }
+
+    always {
+        ctl1.button = 0;
+        ctl1.start = 0;
+    }
+}

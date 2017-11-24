@@ -1,0 +1,88 @@
+module mojo_top2 (
+        input clk,                  // 50MHz clock
+        input rst_n,                // reset button (active low)
+        output led [8],             // 8 user controllable LEDs
+        output spi_miso,            // AVR SPI MISO
+        output spi_channel [4],     // AVR general purpose pins (used by default to select ADC channel)
+        output avr_rx,              // AVR RX (FPGA TX)
+        output io_led [3][8],       // LEDs on IO Shield
+        output io_seg [8],          // 7-segment LEDs on IO Shield
+        output io_sel [4],          // Digit select on IO Shield
+        input io_button [5],        // 5 buttons on IO Shield
+        input io_dip [3][8]         // DIP switches on IO Shield 
+        ) {
+    
+    sig rst;                        // reset signal
+    
+    alu8 alu8;
+    
+    .clk(clk) {
+        // The reset conditioner is used to synchronize the reset signal to the FPGA
+        // clock. This ensures the entire FPGA comes out of reset at the same time.
+        reset_conditioner reset_cond;
+        .rst(rst) {
+            alu8_testcases test;
+            error_display err_dis;
+        }
+    }
+    
+    always {
+        // initializing alu8 module
+        alu8.alufn = io_dip[0][5:0];
+        alu8.a = io_dip[2];
+        alu8.b = io_dip[1];
+    
+        // initializing error_display module
+        err_dis.error = b0;
+        err_dis.num = b0;
+        err_dis.result = b0;
+    
+        // initializing alu8_testcases module
+        test.alu8_out = alu8.alu;
+        test.trigger = b0;
+     
+        reset_cond.in = ~rst_n;     // input raw inverted reset signal
+        rst = reset_cond.out;       // conditioned reset
+        
+        led = 8h00;                 // turn LEDs off
+        spi_miso = bz;              // not using SPI
+        spi_channel = bzzzz;        // not using flags
+        avr_rx = bz;                // not using serial port
+        
+        io_led = 3x{{8h00}};        // turn LEDs off
+        io_seg = 8hff;              // turn segments off
+        io_sel = 4hf;               // select no digits
+        
+        // IO LEDs are initially connected to IO DIP switches to show A, B and ALUFN
+        io_led[2] = io_dip[2];
+        io_led[1] = io_dip[1];
+        io_led[0][5:0] = io_dip[0][5:0];
+        
+        // the Mojo LED will always show alu8's alu output
+        led = alu8.alu;
+        
+        if (io_dip[0][7]) {
+            // auto-test ALU if io_button[0] is pressed
+            test.trigger = io_button[0];
+      
+            // changing alu8 module inputs
+            alu8.alufn = test.temp_alufn;
+            alu8.a = test.alu8_in[1];
+            alu8.b = test.alu8_in[0];
+      
+            // changing error_display module inputs
+            err_dis.error = test.error;
+            err_dis.num = test.num;
+            err_dis.result = test.result;
+        
+            // show the two inputs of testing and the ALUFN
+            io_led[2] = test.alu8_in[1];
+            io_led[1] = test.alu8_in[0];
+            io_led[0] = test.temp_alufn;
+        
+            // display error and current test number on IO segments
+            io_seg = err_dis.seg;
+            io_sel = err_dis.sel;
+        }
+    }
+}

@@ -1,0 +1,100 @@
+module led_lib #(
+        SIZE = 2 : SIZE > 0,
+        BIT_NUM = SIZE * 24
+    
+        /* color table
+         x"00FF00", -- red
+         x"FF0000", -- green
+         x"0000FF", -- blue
+         x"00FFFF", -- magenta
+         x"FF00FF", -- cyan
+         x"FFFF00", -- yellow
+         x"FFFFFF", -- white
+         x"000000"  -- black (off)
+        */
+    )(
+        input clk,              // clock
+        input rst,              // reset
+        input colors[BIT_NUM],  // the colors to output in bits
+        output dataOut          // the bit-data that's going to the LEDs
+    ) {
+    
+    .clk(clk) {
+        .rst(rst) {
+            dff timer[7];                                // used to time the bit-banging
+            dff color_bit_index[$clog2(BIT_NUM) + 1];    // the index of the color bit that we are sending
+            dff bit;                                     // the outgoing bit
+            dff pause[17];                               // timer for the pause between bit-bangs
+            
+            fsm state = {ONE, ZERO, PAUSE};
+         }
+    }
+  
+    always {
+        dataOut = bit.q;
+        
+        // the Mojo is sending one data pulse for each bit of the color bits ie. one color requires 24 pulses
+        // the pulse for a ONE-bit and the pulse for a ZERO-bit is slightly different in timing
+        case(colors[color_bit_index.q]) { 
+            b1:
+                case (state.q) {
+                    state.ONE:
+                        bit.d = b1;
+                        timer.d = timer.q + 1;
+                        if (color_bit_index.q == BIT_NUM) {
+                            state.d = state.PAUSE;
+                        } else if (timer.q > 45) {
+                            state.d = state.ZERO;
+                        }
+                        
+                    state.ZERO:
+                        bit.d = b0;
+                        timer.d = timer.q + 1;
+                        if (timer.q == b0111110) {
+                            color_bit_index.d = color_bit_index.q + 1;
+                            timer.d = b0;
+                            state.d = state.ONE;
+                        } 
+                        
+                    state.PAUSE:
+                        bit.d = b0;
+                        pause.d = pause.q + 1;
+                        if (pause.q[16] == b1) {
+                             color_bit_index.d = b0;
+                             pause.d = 0;
+                             state.d = state.ONE;
+                        }
+                    } 
+     
+            b0:
+                case (state.q) {
+                    state.ONE:
+                        bit.d = b1;
+                        timer.d = timer.q + 1;
+                        if (color_bit_index.q == BIT_NUM) {
+                            state.d = state.PAUSE;
+                        } else if (timer.q > 17) {
+                            state.d = state.ZERO;
+                        }
+                        
+                    state.ZERO:
+                        bit.d = b0;
+                        timer.d = timer.q + 1;
+                        if (timer.q == b0111110) {
+                            color_bit_index.d = color_bit_index.q + 1;
+                            timer.d = b0;
+                            state.d = state.ONE;
+                        } 
+                        
+                    state.PAUSE:
+                        bit.d = b0;
+                        pause.d = pause.q + 1;
+                        if (pause.q[16] == b1) {
+                             color_bit_index.d = b0;
+                             pause.d = b0;
+                             state.d = state.ONE;
+                        }
+                    } 
+        }
+    }
+}
