@@ -1,0 +1,11 @@
+module led_matrix (
+    input clk,  // clock
+    input rst,  // reset
+    output out
+  ) {
+
+  always {
+    // led_matrix for easier led_lib access
+    out = 0;
+  }
+}

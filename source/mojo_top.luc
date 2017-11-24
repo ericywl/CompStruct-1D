@@ -18,15 +18,14 @@ module mojo_top (
     ) {
     
     sig rst;                        // reset signal
-    const ROW_SIZE = 5;
+    const COLUMNS = 5;
+    const ROWS = 2;
     
-    .clk(clk) {
-        // The reset conditioner is used to synchronize the reset signal to the FPGA
-        // clock. This ensures the entire FPGA comes out of reset at the same time.
-        .rst(rst) {
-            control ctl(#SIZE(ROW_SIZE));
-            led_lib lib(#SIZE(ROW_SIZE));
-            // control_man ctrl_man(#SIZE(ROW_SIZE));
+    .clk(clk), .rst(rst) {
+        led_lib lib(#SIZE(COLUMNS));
+    
+        .start(io_dip[2][7]), .button(io_button[1]) {
+            control_man ctl_man(#COLUMNS(COLUMNS), #ROWS(ROWS));
         }
     }
     
@@ -36,11 +35,9 @@ module mojo_top (
         spi_channel = bzzzz;        // not using flags
         avr_rx = bz;                // not using serial port
         
-        ctl.start = io_dip[2][7];
-        ctl.button = io_button[0];
-        ctl.start_color = c{Color.BLUE, Color.BLUE, Color.BLUE, Color.BLUE, Color.BLACK};
-    
-        lib.colors = ctl.colors_out;
+        // temporarily set to 0
+        lib.colors = 0;
+        
         led_data = lib.dataOut;
     }
 }

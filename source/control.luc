@@ -7,7 +7,8 @@ module control #(
         input start,
         input button,
         input start_color[BIT_NUM],
-        output colors_out[BIT_NUM]
+        output colors_out[BIT_NUM],
+        output stop
     ) {
     
     const MSB_INDEX = BIT_NUM - 1;
@@ -19,11 +20,13 @@ module control #(
             dff valid_press;        // check for valid button press
             dff timer[25];          // used to time the shift 
             dff temp_colors[BIT_NUM];
+            dff stop_signal;
     }
     
     always {
         timer.d = timer.q + 1;
-        
+        colors_out = temp_colors.q;
+        stop = stop_signal.q;
         
         if (button) {
             buttonstate.d = buttonstate.PRESSED;
@@ -31,6 +34,8 @@ module control #(
         
         case (buttonstate.q) {
             buttonstate.UNPRESSED:
+                stop_signal.d = b0;
+
                 if (timer.q == 25x{1}) {
                     case(state.q) {
                         state.START:
@@ -38,7 +43,7 @@ module control #(
                                 temp_colors.d = start_color;
                                 state.d = state.SHL;
                             }
-                            
+
                         state.SHL:
                             temp_colors.d = temp_colors.q << 24;
                             if (valid_press.q) {
@@ -48,7 +53,7 @@ module control #(
                                 temp_colors.d = temp_colors.q >> 24;
                                 state.d = state.SHR;
                             }
-                            
+
                         state.SHR:
                             temp_colors.d = temp_colors.q >> 24;
                             if (valid_press.q) {
@@ -63,8 +68,7 @@ module control #(
                 
         buttonstate.PRESSED:
             temp_colors.d = temp_colors.q;
+            stop_signal.d = b1;
         }
-            
-        colors_out = temp_colors.q;
     }
 }

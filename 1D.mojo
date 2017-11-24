@@ -13,6 +13,7 @@
     <src>alu_arith8.luc</src>
     <src>alu8_seven_seg.luc</src>
     <src>alu8_testcases.luc</src>
+    <src>led_matrix.luc</src>
     <src>alu_bool8.luc</src>
     <ucf lib="true">io_shield.ucf</ucf>
     <ucf lib="true">mojo.ucf</ucf>

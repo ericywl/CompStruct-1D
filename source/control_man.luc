@@ -1,18 +1,37 @@
 module control_man #(
-        SIZE = 2 : SIZE > 0
+        ROWS = 2 : ROWS > 0,
+        COLUMNS = 2 : COLUMNS > 0,
+        BIT_NUM = COLUMNS * 24
     )(
-        input clk,    // clock
-        input rst    // reset
+        input clk,                        // clock
+        input rst,                        // reset
+        input start,
+        input button,
+        output matrix[ROWS][BIT_NUM]  // output to led_matrix
     ) {
+  
+    const BASE = COLUMNSx{b1};
     
     .clk(clk), .rst(rst) {
-        control ctl1(#SIZE(SIZE));
-        
-        dff led_storage[11][SIZE * 24];
+        .button(button) {
+            control ctl1(#SIZE(COLUMNS));
+            control ctl2(#SIZE(COLUMNS));
+        }
+    
+        dff storage[ROWS][BIT_NUM];
     }
 
     always {
-        ctl1.button = 0;
-        ctl1.start = 0;
+        // map start_color to 5 bits
+        // implement ALU functions to check
+        ctl1.start = start;
+        ctl1.start_color = c{4x{Color.BLUE}, Color.BLACK};
+        matrix[0] = ctl1.colors_out;
+
+        // the start_color is dependent on previous row
+        ctl2.start = ctl1.stop;
+        ctl2.start_color = c{4x{Color.BLUE}, Color.BLACK};
+    
+        matrix = storage.q;
     }
 }
