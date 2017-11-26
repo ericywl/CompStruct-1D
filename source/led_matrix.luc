@@ -1,11 +1,19 @@
-module led_matrix (
-    input clk,  // clock
-    input rst,  // reset
-    output out
-  ) {
+module led_matrix #(
+        ROWS = 11 : ROWS > 0,
+        COLUMNS = 5 : COLUMNS > 0
+    )(
+        input clk,  // clock
+        input rst,  // reset
+        input colors[ROWS][COLUMNS * 24],
+        output led_data[ROWS]
+    ) {
+    
+    .clk(clk), .rst(rst) {
+        led_lib lib[ROWS](#SIZE(COLUMNS));
+    }
 
-  always {
-    // led_matrix for easier led_lib access
-    out = 0;
-  }
+    always {
+        lib.colors = colors;
+        led_data = lib.dataOut;
+    }
 }

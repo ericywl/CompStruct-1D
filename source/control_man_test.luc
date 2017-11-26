@@ -1,0 +1,44 @@
+module control_man_test #(
+        ROWS = 2 : ROWS > 0,
+        COLUMNS = 5 : COLUMNS > 0
+    )(
+        input clk,    // clock
+        input rst,    // reset
+        input button,
+        input start,
+        output matrix[ROWS][COLUMNS * 24]
+    ) {
+    
+    const BIT_NUM = COLUMNS * 24;    
+    const START_BLKNUM = (COLUMNS / 2) + 1;
+    const REMAIN = COLUMNS - START_BLKNUM;
+    
+    .clk(clk), .rst(rst) {
+        .button(button) {
+            control ctl(#SIZE(COLUMNS));
+        }
+        
+        fsm level_state = {IDLE, START};
+        dff start_signal;
+        dff storage[BIT_NUM];
+        dff output_array[BIT_NUM];
+    }
+
+    always {
+        matrix[0] = output_array.q;
+        ctl.start_color = storage.q;
+        ctl.start = start;
+        
+        case(level_state.q) {
+            level_state.IDLE:
+                if (start) {
+                    level_state.d = level_state.START;
+                }
+            
+            level_state.START:
+                storage.d = c{START_BLKNUMx{Color.GREEN}, REMAINx{Color.BLACK}};
+                output_array.d = ctl.colors_out;
+        }
+        
+    }
+}

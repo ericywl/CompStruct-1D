@@ -1,6 +1,5 @@
 module led_lib #(
-        SIZE = 2 : SIZE > 0,
-        BIT_NUM = SIZE * 24
+        SIZE = 5 : SIZE > 0
     
         /* color table
          x"00FF00", -- red
@@ -15,10 +14,12 @@ module led_lib #(
     )(
         input clk,              // clock
         input rst,              // reset
-        input colors[BIT_NUM],  // the colors to output in bits
+        input colors[SIZE * 24],  // the colors to output in bits
         output dataOut          // the bit-data that's going to the LEDs
     ) {
     
+    const BIT_NUM = SIZE * 24;
+  
     .clk(clk) {
         .rst(rst) {
             dff timer[7];                                // used to time the bit-banging

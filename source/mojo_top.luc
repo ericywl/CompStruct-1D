@@ -8,13 +8,13 @@ global Color {
 
 module mojo_top (
         input clk,                  // 50MHz clock
+        input io_dip [3][8],
+        input io_button[5],
         output led [8],             // 8 user controllable LEDs
         output spi_miso,            // AVR SPI MISO
         output spi_channel [4],     // AVR general purpose pins (used by default to select ADC channel)
         output avr_rx,              // AVR RX (FPGA TX)
-        output led_data,
-        input io_dip [3][8],
-        input io_button[5]
+        output led_data[2]
     ) {
     
     sig rst;                        // reset signal
@@ -22,10 +22,10 @@ module mojo_top (
     const ROWS = 2;
     
     .clk(clk), .rst(rst) {
-        led_lib lib(#SIZE(COLUMNS));
-    
-        .start(io_dip[2][7]), .button(io_button[1]) {
-            control_man ctl_man(#COLUMNS(COLUMNS), #ROWS(ROWS));
+        led_matrix led_matrix(#COLUMNS(COLUMNS), #ROWS(ROWS));
+        .start(io_button[0]), .button(io_button[1]) {
+            // control_man ctl_man(#COLUMNS(COLUMNS), #ROWS(ROWS));
+            control_man_test ctl_man(#COLUMNS(COLUMNS), #ROWS(ROWS));
         }
     }
     
@@ -35,9 +35,7 @@ module mojo_top (
         spi_channel = bzzzz;        // not using flags
         avr_rx = bz;                // not using serial port
         
-        // temporarily set to 0
-        lib.colors = 0;
-        
-        led_data = lib.dataOut;
+        led_matrix.colors = ctl_man.matrix;
+        led_data = led_matrix.led_data;
     }
 }
