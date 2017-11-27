@@ -15,7 +15,7 @@
     <src>control_man.luc</src>
     <src>alu8_testcases.luc</src>
     <src>control_man_test.luc</src>
-    <src>alu8_seven_segment.luc</src>
+    <src>alu8_seven_seg.luc</src>
     <src>led_matrix.luc</src>
     <src>alu_bool8.luc</src>
     <ucf>stackoverflow.ucf</ucf>
