@@ -15,19 +15,22 @@ module control_man_test #(
     
     .clk(clk), .rst(rst) {
         .button(button) {
-            control ctl(#SIZE(COLUMNS));
+            control ctl0(#SIZE(COLUMNS));
+            control ctl1(#SIZE(COLUMNS));
         }
         
-        fsm level_state = {IDLE, START};
-        dff start_signal;
-        dff storage[BIT_NUM];
-        dff output_array[BIT_NUM];
+        fsm level_state = {IDLE, START, ROW1};
+        dff start_signals[ROWS];
+        dff storage[ROWS][BIT_NUM];
+        dff output_array[ROWS][BIT_NUM];
     }
 
     always {
-        matrix[0] = output_array.q;
-        ctl.start_color = storage.q;
-        ctl.start = start;
+        matrix = output_array.q;
+        ctl0.start_color = storage.q[0];
+        ctl0.start = start_signals.q[0];
+        ctl1.start_color = storage.q[1];
+        ctl1.start_color = start_signals.q[1];
         
         case(level_state.q) {
             level_state.IDLE:
@@ -36,8 +39,17 @@ module control_man_test #(
                 }
             
             level_state.START:
-                storage.d = c{START_BLKNUMx{Color.GREEN}, REMAINx{Color.BLACK}};
-                output_array.d = ctl.colors_out;
+            	start_signals.d[0] = b1;
+                storage.d[0] = c{START_BLKNUMx{Color.GREEN}, REMAINx{Color.BLACK}};
+                output_array.d[0] = ctl0.colors_out;
+                if (ctl0.stop) {
+                	level_state.d = level_state.ROW1;
+                }
+
+            level_state.ROW1:
+            	start_signals.d[1] = b1;
+            	storage.d[1] = c{START_BLKNUMx{Color.GREEN}, REMAINx{Color.BLACK}};
+            	output_array.d[0] = ctl1.colors_out;
         }
         
     }
