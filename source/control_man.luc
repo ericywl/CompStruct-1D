@@ -47,7 +47,7 @@ module control_man #(
                 }
                 
             level_state.ROW_INIT:
-                check_bits.d = storage.q[row_counter.q - 1];
+                check_bits.d = output_array.q[row_counter.q - 1];
                 start_signals.d[row_counter.q] = b1;
                 // hardcoded for smaller size
                 if (chk.blk_size == 3) {

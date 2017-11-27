@@ -11,8 +11,6 @@ module control_test #(
     ) {
     
     .clk(clk) {
-        // The reset conditioner is used to synchronize the reset signal to the FPGA
-        // clock. This ensures the entire FPGA comes out of reset at the same time.
         .rst(rst){
             fsm state = {START, SHL, SHR};
             fsm buttonstate = {UNPRESSED, PRESSED};

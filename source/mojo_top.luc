@@ -20,6 +20,8 @@ module mojo_top (
   
     sig rst;    // reset signal
     
+    // led_matrix_test and check_size are hardcoded, 
+    // need to change if these constants change
     const COLUMNS = 5;
     const ROWS = 3;
     
