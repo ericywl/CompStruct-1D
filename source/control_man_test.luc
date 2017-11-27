@@ -6,28 +6,28 @@ module control_man_test #(
         input rst,    // reset
         input button,
         input start,
-        output matrix[ROWS][COLUMNS * 24]
+        output matrix[ROWS][COLUMNS]
     ) {
-    
-    const BIT_NUM = COLUMNS * 24;    
-    const START_BLKNUM = (COLUMNS / 2) + 1;
-    const REMAIN = COLUMNS - START_BLKNUM;
+  
+    const BIT_NUM = COLUMNS;
     
     .clk(clk), .rst(rst) {
-        .button(button) {
-            control ctl(#SIZE(COLUMNS));
-        }
+        control_test ctl[ROWS](#SIZE(COLUMNS), .button(button));
+        check_size chk;
         
-        fsm level_state = {IDLE, START};
-        dff start_signal;
-        dff storage[BIT_NUM];
-        dff output_array[BIT_NUM];
+        fsm level_state = {IDLE, START, ROW_INIT, ROW_END};
+        dff start_signals[ROWS];
+        dff storage[ROWS][BIT_NUM];
+        dff output_array[ROWS][BIT_NUM];
+        dff row_counter[$clog2(ROWS) + 1];
+        dff check_bits[BIT_NUM];
     }
 
     always {
-        matrix[0] = output_array.q;
-        ctl.start_color = storage.q;
-        ctl.start = start;
+        matrix = output_array.q;
+        ctl.start_row = storage.q;
+        ctl.start = start_signals.q;
+        chk.check_bits = check_bits.q;
         
         case(level_state.q) {
             level_state.IDLE:
@@ -36,9 +36,39 @@ module control_man_test #(
                 }
             
             level_state.START:
-                storage.d = c{START_BLKNUMx{Color.GREEN}, REMAINx{Color.BLACK}};
-                output_array.d = ctl.colors_out;
+                start_signals.d[0] = b1;
+                storage.d[0] = c{3x{b1}, 2x{b0}};  
+                output_array.d[0] = ctl.colors_out[0];
+                if (ctl.stop[0]) {
+                    row_counter.d = 1;
+                    level_state.d = level_state.ROW_INIT;
+                }
+                
+            level_state.ROW_INIT:
+                check_bits.d = storage.q[row_counter.q - 1];
+                start_signals.d[row_counter.q] = b1;
+                // hardcoded for smaller size
+                if (chk.blk_size == 3) {
+                    storage.d[row_counter.q] = b11100;
+                } else if (chk.blk_size == 2) {
+                    storage.d[row_counter.q] = b11000;
+                } else if (chk.blk_size == 1) {
+                    storage.d[row_counter.q] = b10000;
+                }
+                
+                output_array.d[row_counter.q] = ctl.colors_out[row_counter.q];
+                if (ctl.stop[row_counter.q]) {
+                    level_state.d = level_state.ROW_END;
+                }
+                
+            level_state.ROW_END:
+                output_array.d[row_counter.q] = output_array.q[row_counter.q - 1] & output_array.q[row_counter.q];
+                if (output_array.q[row_counter.q] == b0) {
+                    // go to game over
+                } else {
+                    row_counter.d = row_counter.q + 1;
+                    level_state.d = level_state.ROW_INIT;
+                }                    
         }
-        
     }
 }

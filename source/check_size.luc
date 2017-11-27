@@ -1,0 +1,19 @@
+module check_size (
+        input clk,    // clock
+        input rst,    // reset
+        input check_bits[5],
+        output blk_size[$clog2(5)]
+    ) {
+  
+    sig temp[5];
+
+    always {
+        // temp[0] = |check_bits[23:0];
+        // temp[1] = |check_bits[47:24];
+        // temp[2] = |check_bits[71:48];
+        // temp[3] = |check_bits[95:72];
+        // temp[4] = |check_bits[119:96];
+        // blk_size = temp[0] + temp[1] + temp[2] + temp[3] + temp[4];
+        blk_size = check_bits[0] + check_bits[1] + check_bits[2] + check_bits[3] + check_bits[4];
+    }
+}

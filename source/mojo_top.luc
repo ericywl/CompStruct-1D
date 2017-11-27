@@ -1,41 +1,49 @@
 global Color {
-    const RED = h00FF00;
-    const GREEN = h0000FF;
-    const BLUE = hFF0000;
-    const WHITE = hFFFFFF;
+    const RED = h00DD00;
+    const GREEN = h0000DD;
+    const BLUE = hDD0000;
+    const WHITE = hDDDDDD;
     const BLACK = h000000;
 }
 
 module mojo_top (
         input clk,                  // 50MHz clock
+        input rst_n,
         input io_dip [3][8],
         input io_button[5],
         output led [8],             // 8 user controllable LEDs
         output spi_miso,            // AVR SPI MISO
         output spi_channel [4],     // AVR general purpose pins (used by default to select ADC channel)
         output avr_rx,              // AVR RX (FPGA TX)
-        output led_data[2]
+        output led_data[3]
     ) {
+  
+    sig rst;    // reset signal
     
-    sig rst;                        // reset signal
     const COLUMNS = 5;
-    const ROWS = 2;
+    const ROWS = 3;
     
-    .clk(clk), .rst(rst) {
-        led_matrix led_matrix(#COLUMNS(COLUMNS), #ROWS(ROWS));
-        .start(io_button[0]), .button(io_button[1]) {
-            // control_man ctl_man(#COLUMNS(COLUMNS), #ROWS(ROWS));
-            control_man_test ctl_man(#COLUMNS(COLUMNS), #ROWS(ROWS));
-        }
+    .clk(clk) {
+      reset_conditioner reset_cond;
+      .rst(rst) {
+      // control_man ctl_man(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(io_button[1]));
+      // led_matrix led_matrix(#COLUMNS(COLUMNS), #ROWS(ROWS));
+      led_matrix_test led_matrix(#COLUMNS(COLUMNS), #ROWS(ROWS));
+      control_man_test ctl_man(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(io_button[1]));
+      }
     }
     
     always {
+        reset_cond.in = ~rst_n;
+        rst = reset_cond.out;
+    
         led = 8h00;                 // turn LEDs off
         spi_miso = bz;              // not using SPI
         spi_channel = bzzzz;        // not using flags
         avr_rx = bz;                // not using serial port
         
-        led_matrix.colors = ctl_man.matrix;
+        led_matrix.color = Color.GREEN;
+        led_matrix.array = ctl_man.matrix;
         led_data = led_matrix.led_data;
     }
 }

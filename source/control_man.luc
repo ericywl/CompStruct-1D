@@ -2,100 +2,75 @@ module control_man #(
         ROWS = 2 : ROWS > 0,
         COLUMNS = 5 : COLUMNS > 0
     )(
-        input clk,                        // clock
-        input rst,                        // reset
-        input start,
+        input clk,    // clock
+        input rst,    // reset
         input button,
-        output ctl_man_out,
-        output matrix[ROWS][COLUMNS * 24]  // output to led_matrix
+        input start,
+        output matrix[ROWS][COLUMNS * 24]
     ) {
   
-    var i;
-    var j;
-    // var remain;
-    // var blk_size;
-    const BIT_NUM = COLUMNS * 24;  
+    const BIT_NUM = COLUMNS * 24;
     const START_BLKNUM = (COLUMNS / 2) + 1;
-    const REMAIN = COLUMNS - START_BLKNUM; 
-  
-    .clk(clk), .rst(rst) {
-        .button(button) {
-            control ctl[ROWS](#SIZE(COLUMNS));
-        }
+    const REMAIN = COLUMNS - START_BLKNUM;
     
-        // map map(#SIZE(COLUMNS));
+    .clk(clk), .rst(rst) {
+        control ctl[ROWS](#SIZE(COLUMNS), .button(button));
+        check_size chk;
         
-        fsm level_state = {IDLE, START, ROW_INIT, ROW_END, GAMEOVER};
+        fsm level_state = {IDLE, START, ROW_INIT, ROW_END};
+        dff start_signals[ROWS];
         dff storage[ROWS][BIT_NUM];
-        dff start_array[ROWS];
+        dff output_array[ROWS][BIT_NUM];
         dff row_counter[$clog2(ROWS) + 1];
         dff check_bits[BIT_NUM];
-        dff temp_row[BIT_NUM];
-        dff out;
     }
 
     always {
-        for (i = 0; i < ROWS; i++) {
-            ctl.start[i] = start_array.q[i];
-            ctl.start_color[i] = storage.q[i];
-        }
-        
-        out.d = b0;
-        ctl_man_out = out.q;
-        matrix = storage.q;
-        // map.check_bits = check_bits.q;
+        matrix = output_array.q;
+        ctl.start_color = storage.q;
+        ctl.start = start_signals.q;
+        chk.check_bits = check_bits.q;
         
         case(level_state.q) {
             level_state.IDLE:
-                if (button) {
-                    out.d = b0;
+                if (start) {
                     level_state.d = level_state.START;
                 }
             
             level_state.START:
-                temp_row.d = c{START_BLKNUMx{Color.GREEN}, REMAINx{Color.BLACK}};
-                start_array.d = c{start, (ROWS - 1)x{b0}};
-                storage.d[0] = temp_row.q;
-                for (j = 1; j < ROWS; j++) {
-                    storage.d[j] = b0;
-                }
-        
+                start_signals.d[0] = b1;
+                storage.d[0] = c{START_BLKNUMx{Color.GREEN}, REMAINx{Color.BLACK}};  
+                output_array.d[0] = ctl.colors_out[0];
                 if (ctl.stop[0]) {
+                    row_counter.d = 1;
                     level_state.d = level_state.ROW_INIT;
-                    row_counter.d = b1;
-                    storage.d[0] = ctl.colors_out[0];
                 }
                 
             level_state.ROW_INIT:
                 check_bits.d = storage.q[row_counter.q - 1];
-                // blk_size = map.blk_size;
-                // blk_size = 3;
-                // remain = (COLUMNS - blk_size);        
-                temp_row.d = c{3x{Color.GREEN}, 2x{Color.BLACK}};
-                if (temp_row.q == b0) {
-                    level_state.d = level_state.GAMEOVER;
+                start_signals.d[row_counter.q] = b1;
+                // hardcoded for smaller size
+                if (chk.blk_size == 3) {
+                    storage.d[row_counter.q] = c{3x{Color.GREEN}, 2x{Color.BLACK}};
+                } else if (chk.blk_size == 2) {
+                    storage.d[row_counter.q] = c{2x{Color.GREEN}, 3x{Color.BLACK}};
+                } else if (chk.blk_size == 1) {
+                    storage.d[row_counter.q] = c{1x{Color.GREEN}, 4x{Color.BLACK}};
                 }
                 
-                storage.d[row_counter.q] = temp_row.q;
-                start_array.d[row_counter.q] = b1;
-        
+                output_array.d[row_counter.q] = ctl.colors_out[row_counter.q];
                 if (ctl.stop[row_counter.q]) {
                     level_state.d = level_state.ROW_END;
                 }
-        
-            level_state.ROW_END:
-                temp_row.d = storage.q[row_counter.q - 1] & ctl.colors_out[row_counter.q];
-                storage.d[row_counter.q] = temp_row.q;
-                row_counter.d = row_counter.q + 1;
-                if (row_counter.q >= ROWS) {
-                   out.d = b1;
-                    level_state.d = level_state.IDLE;
-                } else {
-                    level_state.d = level_state.ROW_INIT;
-                }
                 
-            level_state.GAMEOVER:
-                storage.d = ROWSx{{COLUMNSx{Color.WHITE}}};
+            level_state.ROW_END:
+                output_array.d[row_counter.q] = output_array.q[row_counter.q - 1] & output_array.q[row_counter.q];
+                if (output_array.q[row_counter.q] == b0) {
+                    // go to game over
+                } else {
+                    row_counter.d = row_counter.q + 1;
+                    level_state.d = level_state.ROW_INIT;
+                }                    
+        }
     }
-  }
 }

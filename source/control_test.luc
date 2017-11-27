@@ -1,16 +1,14 @@
-module control #(
+module control_test #(
         SIZE = 5 : SIZE > 0
     )(
         input clk,    // clock
         input rst,    // reset
         input start,
         input button,
-        input start_color[SIZE * 24],
-        output colors_out[SIZE * 24],
+        input start_row[SIZE],    
+        output colors_out[SIZE],
         output stop
     ) {
-    
-    const MSB_INDEX = SIZE * 24 - 1;
     
     .clk(clk) {
         // The reset conditioner is used to synchronize the reset signal to the FPGA
@@ -19,7 +17,7 @@ module control #(
             fsm state = {START, SHL, SHR};
             fsm buttonstate = {UNPRESSED, PRESSED};
             dff timer[25];
-            dff temp[SIZE * 24];
+            dff temp[SIZE];
             dff stop_signal;
             dff shifting;
         }
@@ -41,22 +39,22 @@ module control #(
                     case(state.q) {
                         state.START:
                             if (start) {
-                                temp.d = start_color;
+                                temp.d = start_row;
                                 state.d = state.SHL;
                                 shifting.d = b1;
                             }
                             
                         state.SHL:
-                            temp.d = temp.q << 24;
-                            if (temp.q[MSB_INDEX:MSB_INDEX - 23] != Color.BLACK) {
-                                temp.d = temp.q >> 24;
+                            temp.d = temp.q << 1;
+                            if (temp.q[SIZE - 1]) {
+                                temp.d = temp.q >> 1;
                                 state.d = state.SHR;
                             }
                             
                         state.SHR:
-                            temp.d = temp.q >> 24;
-                            if (temp.q[23:0] != Color.BLACK) {
-                                temp.d = temp.q << 24;
+                            temp.d = temp.q >> 1;
+                            if (temp.q[0]) {
+                                temp.d = temp.q << 1;
                                 state.d = state.SHL;
                             }    
                     }
