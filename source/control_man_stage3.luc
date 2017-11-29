@@ -15,12 +15,12 @@ module control_man_stage3 #(
     
     .clk(clk), .rst(rst) {
         control ctl[ROWS](#SIZE(COLUMNS), .button(button));
+    
         fsm level_state = {IDLE, START, ROW_INIT, ROW_END};
         dff start_signals[ROWS];
         dff storage[ROWS][BIT_NUM];
         dff output_array[ROWS][BIT_NUM];
         dff row_counter[$clog2(ROWS) + 1];
-    
         dff stop_time[ROWS][25];
     }
 
@@ -49,9 +49,9 @@ module control_man_stage3 #(
             level_state.ROW_INIT:
                 start_signals.d[row_counter.q] = b1;
                 storage.d[row_counter.q] = c{START_BLK_SIZEx{b1}, START_EMPTYx{b0}};
-                if (row_counter.q>=1 && row_counter.q<3) {
+                if (row_counter.q >= 1 && row_counter.q < 3) {
                     stop_time.d[row_counter.q] = b1111111111111100000000000;
-                } else if (row_counter.q>=3 && row_counter.q<5) {
+                } else if (row_counter.q >= 3 && row_counter.q < 5) {
                     stop_time.d[row_counter.q] = c{14x{b1},11x{b0}};
                 } 
                 output_array.d[row_counter.q] = ctl.colors_out[row_counter.q];

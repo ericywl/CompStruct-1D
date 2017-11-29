@@ -26,13 +26,18 @@ module mojo_top (
     const ROWS = 3;
     
     .clk(clk) {
-      reset_conditioner reset_cond;
-      .rst(rst) {
-      // control_man ctl_man(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(io_button[1]));
-      // led_matrix led_matrix(#COLUMNS(COLUMNS), #ROWS(ROWS));
-      led_matrix_test led_matrix(#COLUMNS(COLUMNS), #ROWS(ROWS));
-      control_man_stage3 ctl_man(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(io_button[1]));
-      }
+        reset_conditioner reset_cond;
+        .rst(rst) {
+            // control_man ctl_man(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(io_button[1]));
+            // led_matrix led_matrix(#COLUMNS(COLUMNS), #ROWS(ROWS));
+            led_matrix_test led_matrix(#COLUMNS(COLUMNS), #ROWS(ROWS));
+            control_man_stage1 ctl_man1(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(io_button[1]));
+            control_man_stage2 ctl_man2(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(io_button[1]));
+            control_man_stage3 ctl_man3(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(io_button[1]));
+      
+            fsm game_state = {START, STAGE1, STAGE2, STAGE3, END};
+            dff color[24];
+        }
     }
     
     always {
@@ -43,9 +48,27 @@ module mojo_top (
         spi_miso = bz;              // not using SPI
         spi_channel = bzzzz;        // not using flags
         avr_rx = bz;                // not using serial port
-        
-        led_matrix.color = Color.RED;
-        led_matrix.array = ctl_man.matrix;
+    
+        led_matrix.color = color.q;
+        led_matrix.array = ctl_man1.matrix;
         led_data = led_matrix.led_data;
+    
+        case(game_state.q) {
+            game_state.START:
+                // start of game
+                color.d = Color.BLACK;
+        
+            game_state.STAGE1:
+                // stage 1
+                color.d = Color.GREEN;
+        
+            game_state.STAGE2:
+                // stage2
+                color.d = Color.BLUE;
+        
+            game_state.STAGE3:
+                // stage3
+                color.d = Color.RED;
+        }
     }
 }

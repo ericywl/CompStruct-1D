@@ -53,9 +53,9 @@ module control_man_stage1 #(
                 check_bits.d = output_array.q[row_counter.q - 1];
                 start_signals.d[row_counter.q] = b1;
                 storage.d[row_counter.q] = c{START_BLK_SIZEx{b1}, START_EMPTYx{b0}} << (START_BLK_SIZE - chk.blk_size);
-                if (row_counter.q>=1 && row_counter.q<3){
+                if (row_counter.q >= 1 && row_counter.q < 3){
                     stop_time.d[row_counter.q] = b1111111111111100000000000;
-                } else if (row_counter.q>=3 && row_counter.q<5){
+                } else if (row_counter.q >= 3 && row_counter.q < 5){
                     stop_time.d[row_counter.q] = c{14x{b1},11x{b0}};
                 }
 
