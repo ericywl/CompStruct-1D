@@ -15,7 +15,7 @@ module led_lib #(
         input clk,              // clock
         input rst,              // reset
         input colors[SIZE * 24],  // the colors to output in bits
-        output dataOut          // the bit-data that's going to the LEDs
+        output data_out          // the bit-data that's going to the LEDs
     ) {
     
     const BIT_NUM = SIZE * 24;
@@ -32,7 +32,7 @@ module led_lib #(
     }
   
     always {
-        dataOut = bit.q;
+        data_out = bit.q;
         
         // the Mojo is sending one data pulse for each bit of the color bits ie. one color requires 24 pulses
         // the pulse for a ONE-bit and the pulse for a ZERO-bit is slightly different in timing

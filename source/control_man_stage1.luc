@@ -1,4 +1,4 @@
-module control_man_test #(
+module control_man_stage1 #(
         ROWS = 2 : ROWS > 0,
         COLUMNS = 5 : COLUMNS > 0
     )(
@@ -14,7 +14,7 @@ module control_man_test #(
     const START_EMPTY = COLUMNS - START_BLK_SIZE;
     
     .clk(clk), .rst(rst) {
-        control_test ctl[ROWS](#SIZE(COLUMNS), .button(button));
+        control ctl[ROWS](#SIZE(COLUMNS), .button(button));
         check_size chk;
         
         fsm level_state = {IDLE, START, ROW_INIT, ROW_END};
@@ -23,6 +23,7 @@ module control_man_test #(
         dff output_array[ROWS][BIT_NUM];
         dff row_counter[$clog2(ROWS) + 1];
         dff check_bits[BIT_NUM];
+        dff stop_time[ROWS][25];
     }
 
     always {
@@ -30,7 +31,8 @@ module control_man_test #(
         ctl.start_row = storage.q;
         ctl.start = start_signals.q;
         chk.check_bits = check_bits.q;
-        
+        ctl.stop_time = stop_time.q;
+    
         case(level_state.q) {
             level_state.IDLE:
                 if (start) {
@@ -39,6 +41,7 @@ module control_man_test #(
             
             level_state.START:
                 start_signals.d[0] = b1;
+                stop_time.d[0] = 25x{b1};
                 storage.d[0] = c{START_BLK_SIZEx{b1}, START_EMPTYx{b0}};
                 output_array.d[0] = ctl.colors_out[0];
                 if (ctl.stop[0]) {
@@ -50,7 +53,12 @@ module control_man_test #(
                 check_bits.d = output_array.q[row_counter.q - 1];
                 start_signals.d[row_counter.q] = b1;
                 storage.d[row_counter.q] = c{START_BLK_SIZEx{b1}, START_EMPTYx{b0}} << (START_BLK_SIZE - chk.blk_size);
-                
+                if (row_counter.q>=1 && row_counter.q<3){
+                    stop_time.d[row_counter.q] = b1111111111111100000000000;
+                } else if (row_counter.q>=3 && row_counter.q<5){
+                    stop_time.d[row_counter.q] = c{14x{b1},11x{b0}};
+                }
+
                 output_array.d[row_counter.q] = ctl.colors_out[row_counter.q];
                 if (ctl.stop[row_counter.q]) {
                     level_state.d = level_state.ROW_END;

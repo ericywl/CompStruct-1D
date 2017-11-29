@@ -31,7 +31,7 @@ module mojo_top (
       // control_man ctl_man(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(io_button[1]));
       // led_matrix led_matrix(#COLUMNS(COLUMNS), #ROWS(ROWS));
       led_matrix_test led_matrix(#COLUMNS(COLUMNS), #ROWS(ROWS));
-      control_man_test ctl_man(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(io_button[1]));
+      control_man_stage3 ctl_man(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(io_button[1]));
       }
     }
     
@@ -44,7 +44,7 @@ module mojo_top (
         spi_channel = bzzzz;        // not using flags
         avr_rx = bz;                // not using serial port
         
-        led_matrix.color = Color.GREEN;
+        led_matrix.color = Color.RED;
         led_matrix.array = ctl_man.matrix;
         led_data = led_matrix.led_data;
     }

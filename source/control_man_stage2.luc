@@ -1,0 +1,82 @@
+module control_man_stage2 #(
+        ROWS = 2 : ROWS > 0,
+        COLUMNS = 5 : COLUMNS > 0
+    )(
+        input clk,    // clock
+        input rst,    // reset
+        input button,
+        input start,
+        output matrix[ROWS][COLUMNS]
+    ) {
+  
+    const BIT_NUM = COLUMNS;
+    const START_BLK_SIZE = (COLUMNS / 2) + 1;
+    const START_EMPTY = COLUMNS - START_BLK_SIZE;
+    
+    .clk(clk), .rst(rst) {
+        control ctl[ROWS](#SIZE(COLUMNS), .button(button));
+        check_size chk;
+        
+        fsm level_state = {IDLE, START, ROW_INIT, ROW_END};
+        dff start_signals[ROWS];
+        dff init_array[ROWS][BIT_NUM];
+        dff output_array[ROWS][BIT_NUM];
+        dff storage[ROWS][BIT_NUM];
+        dff row_counter[$clog2(ROWS) + 1];
+        dff check_bits[BIT_NUM];
+        dff stop_time[ROWS][25];
+    }
+
+    always {
+        matrix = output_array.q;
+        ctl.start_row = init_array.q;
+        ctl.start = start_signals.q;
+        chk.check_bits = check_bits.q;
+        ctl.stop_time = stop_time.q;
+    
+        case(level_state.q) {
+            level_state.IDLE:
+                if (start) {
+                    level_state.d = level_state.START;
+                }
+            
+            level_state.START:
+                start_signals.d[0] = b1;
+                stop_time.d[0] = 23x{b1};
+                init_array.d[0] = c{START_BLK_SIZEx{b1}, START_EMPTYx{b0}};
+                output_array.d[0] = ctl.colors_out[0];
+                storage.d[0] = ctl.colors_out[0];
+                if (ctl.stop[0]) {
+                    row_counter.d = 1;
+                    output_array.d[0] = b0;
+                    level_state.d = level_state.ROW_INIT;
+                }
+                
+            level_state.ROW_INIT:
+                check_bits.d = storage.q[row_counter.q - 1];
+                start_signals.d[row_counter.q] = b1;
+                init_array.d[row_counter.q] = c{START_BLK_SIZEx{b1}, START_EMPTYx{b0}} << (START_BLK_SIZE - chk.blk_size);
+                if (row_counter.q >= 1 && row_counter.q < 3) {
+                    stop_time.d[row_counter.q] = c{13x{b1},11x{b0}};
+                } else if (row_counter.q >= 3 && row_counter.q < 5) {
+                    stop_time.d[row_counter.q] = c{12x{b1},11x{b0}};
+                } 
+
+                output_array.d[row_counter.q] = ctl.colors_out[row_counter.q];
+                storage.d[row_counter.q] = ctl.colors_out[row_counter.q];
+                if (ctl.stop[row_counter.q]) {
+                    level_state.d = level_state.ROW_END;
+                }
+                
+            level_state.ROW_END:
+                storage.d[row_counter.q] = storage.q[row_counter.q - 1] & storage.q[row_counter.q];
+                output_array.d[row_counter.q] = b0;
+                if (output_array.q[row_counter.q] == b0) {
+                    // go to game over
+                } else {
+                    row_counter.d = row_counter.q + 1;
+                    level_state.d = level_state.ROW_INIT;
+                }                    
+        }
+    }
+}
