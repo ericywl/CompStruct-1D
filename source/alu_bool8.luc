@@ -6,8 +6,6 @@ module alu_bool8 (
     ) {
     
     always {
-        bool = 0;
-
         // using bitwise operators on each bit of A and B
         case (alufn[3:0]) {
             b1000:
@@ -45,6 +43,9 @@ module alu_bool8 (
                 // XOR compression
                 // check if there's odd number of 1's in A
                 bool = ^a;
+        
+            default:
+                bool = b0;
             }
         }
-    }
+}

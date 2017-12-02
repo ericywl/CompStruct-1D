@@ -1,74 +1,108 @@
 global Color {
+    // BGR
     const RED = h00DD00;
     const GREEN = h0000DD;
     const BLUE = hDD0000;
-    const WHITE = hDDDDDD;
+    const WHITE = h888888;
     const BLACK = h000000;
 }
 
 module mojo_top (
         input clk,                  // 50MHz clock
-        input rst_n,
-        input io_dip [3][8],
-        input io_button[5],
+        // input rst_n,
         output led [8],             // 8 user controllable LEDs
         output spi_miso,            // AVR SPI MISO
         output spi_channel [4],     // AVR general purpose pins (used by default to select ADC channel)
         output avr_rx,              // AVR RX (FPGA TX)
-        output led_data[3]
+        output led_data[11],
+        input brb
     ) {
   
     sig rst;    // reset signal
+    sig button;
+    rom_game_over rom_game_over;
     
-    // led_matrix_test and check_size are hardcoded, 
+    // led_matrix and check_size are hardcoded, 
     // need to change if these constants change
     const COLUMNS = 5;
-    const ROWS = 3;
+    const ROWS = 11;
     
     .clk(clk) {
         reset_conditioner reset_cond;
+        button_conditioner button_cond;
+        fsm game_state = {STAGE1, STAGE2, LOSE, WIN, END};
+        dff reset;
         .rst(rst) {
             // control_man ctl_man(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(io_button[1]));
             // led_matrix led_matrix(#COLUMNS(COLUMNS), #ROWS(ROWS));
-            led_matrix_test led_matrix(#COLUMNS(COLUMNS), #ROWS(ROWS));
-            control_man_stage1 ctl_man1(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(io_button[1]));
-            control_man_stage2 ctl_man2(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(io_button[1]));
-            control_man_stage3 ctl_man3(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(io_button[1]));
-      
-            fsm game_state = {START, STAGE1, STAGE2, STAGE3, END};
+            led_matrix led_matrix(#COLUMNS(COLUMNS), #ROWS(ROWS));
+            control_man_stage1 ctl_man1(#COLUMNS(COLUMNS), #ROWS(ROWS), .button(button));
+            // control_man_stage2 ctl_man2(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(brb));
+            // control_man_stage3 ctl_man3(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(io_button[1]));
+
+            dff next_level;
             dff color[24];
+            dff led_matrix_temp[ROWS][COLUMNS];
         }
     }
     
     always {
-        reset_cond.in = ~rst_n;
+        reset_cond.in = reset.q;
         rst = reset_cond.out;
+        
+        button_cond.in = brb;
+        button = button_cond.out;
     
         led = 8h00;                 // turn LEDs off
         spi_miso = bz;              // not using SPI
         spi_channel = bzzzz;        // not using flags
         avr_rx = bz;                // not using serial port
     
+        ctl_man1.next_level = next_level.q;
+    
         led_matrix.color = color.q;
-        led_matrix.array = ctl_man1.matrix;
+        led_matrix.matrix = led_matrix_temp.q;
         led_data = led_matrix.led_data;
     
         case(game_state.q) {
-            game_state.START:
-                // start of game
-                color.d = Color.BLACK;
-        
             game_state.STAGE1:
-                // stage 1
+                reset.d = b0;
                 color.d = Color.GREEN;
-        
+                next_level.d = 0;
+                led_matrix_temp.d = ctl_man1.matrix;
+                if (ctl_man1.level_end == 1) {
+                    reset.d = b1;
+                    game_state.d = game_state.STAGE2;
+                } else if (ctl_man1.level_end == 2) {
+                    game_state.d = game_state.LOSE;
+                }
+                
             game_state.STAGE2:
-                // stage2
+                reset.d = b0;
                 color.d = Color.BLUE;
+                next_level.d = 1;
+                led_matrix_temp.d = ctl_man1.matrix;
+                if (ctl_man1.level_end == 1) {
+                    game_state.d = game_state.WIN;
+                } else if (ctl_man1.level_end == 2) {
+                    game_state.d = game_state.LOSE;
+                }
         
-            game_state.STAGE3:
-                // stage3
+            game_state.LOSE:
+                reset.d = b0;
                 color.d = Color.RED;
-        }
+                led_matrix_temp.d = rom_game_over.out;
+                game_state.d = game_state.END;
+        
+            // not working properly
+            game_state.END:
+                reset.d = b0;
+                led_matrix_temp.d = rom_game_over.out;
+                if (button) {
+                    reset.d = b1;
+                    game_state.d = game_state.STAGE1;
+                }
+                
+        }  
     }
 }

@@ -1,77 +1,114 @@
 module control_man_stage1 #(
-        ROWS = 2 : ROWS > 0,
-        COLUMNS = 5 : COLUMNS > 0
+        ROWS = 11 : 0 < ROWS < 12,
+        COLUMNS = 5 : 0 < COLUMNS < 6
     )(
         input clk,    // clock
         input rst,    // reset
         input button,
-        input start,
-        output matrix[ROWS][COLUMNS]
+        input next_level,
+        output matrix[ROWS][COLUMNS],
+        output level_end[2]
     ) {
+
+    rom_stop_time rom_stop_time;
+    alu8 alu;
   
-    const BIT_NUM = COLUMNS;
-    const START_BLK_SIZE = (COLUMNS / 2) + 1;
-    const START_EMPTY = COLUMNS - START_BLK_SIZE;
-    
     .clk(clk), .rst(rst) {
         control ctl[ROWS](#SIZE(COLUMNS), .button(button));
-        check_size chk;
+        init_blk init_blk(#SIZE(5));
         
-        fsm level_state = {IDLE, START, ROW_INIT, ROW_END};
-        dff start_signals[ROWS];
-        dff storage[ROWS][BIT_NUM];
-        dff output_array[ROWS][BIT_NUM];
-        dff row_counter[$clog2(ROWS) + 1];
-        dff check_bits[BIT_NUM];
-        dff stop_time[ROWS][25];
+        fsm level_state = {IDLE, START, ROW_INIT, ROW_SHIFT, ROW_AND, ROW_END, CHECK, LEVEL_END, GAME_OVER};
+        dff ctl_start_signals[ROWS];
+        dff stop_time[ROWS][24];
+        
+        dff init_matrix[ROWS][COLUMNS];
+        dff storage_matrix[ROWS][COLUMNS];
+        dff output_matrix[ROWS][COLUMNS];
+    
+        dff rc[$clog2(ROWS)];
+        dff prev_row[COLUMNS];
+        dff level_end_temp[2];
+    
+        dff alufn[6];
+        dff alu_a[8];
+        dff alu_b[8];
     }
 
     always {
-        matrix = output_array.q;
-        ctl.start_row = storage.q;
-        ctl.start = start_signals.q;
-        chk.check_bits = check_bits.q;
+        matrix = output_matrix.q;
+        level_end = level_end_temp.q;
+    
+        ctl.start_row = init_matrix.q;
+        ctl.start = ctl_start_signals.q;
         ctl.stop_time = stop_time.q;
+        
+        alu.alufn = alufn.q;
+        alu.a = alu_a.q;
+        alu.b = alu_b.q;
+        
+        rom_stop_time.index = rc.q;
+        init_blk.prev_row = prev_row.q;
+        init_blk.index = rc.q;
     
         case(level_state.q) {
             level_state.IDLE:
-                if (start) {
+                if (button) {
                     level_state.d = level_state.START;
                 }
             
             level_state.START:
-                start_signals.d[0] = b1;
-                stop_time.d[0] = 25x{b1};
-                storage.d[0] = c{START_BLK_SIZEx{b1}, START_EMPTYx{b0}};
-                output_array.d[0] = ctl.colors_out[0];
+                ctl_start_signals.d[0] = b1;
+                stop_time.d[0] = hFFFFFF;
+                init_matrix.d[0] = 5b00111;
+                storage_matrix.d[0] = ctl.colors_out[0];
+                output_matrix.d[0] = ctl.colors_out[0];
                 if (ctl.stop[0]) {
-                    row_counter.d = 1;
+                    rc.d = 1;
                     level_state.d = level_state.ROW_INIT;
                 }
                 
             level_state.ROW_INIT:
-                check_bits.d = output_array.q[row_counter.q - 1];
-                start_signals.d[row_counter.q] = b1;
-                storage.d[row_counter.q] = c{START_BLK_SIZEx{b1}, START_EMPTYx{b0}} << (START_BLK_SIZE - chk.blk_size);
-                if (row_counter.q >= 1 && row_counter.q < 3){
-                    stop_time.d[row_counter.q] = b1111111111111100000000000;
-                } else if (row_counter.q >= 3 && row_counter.q < 5){
-                    stop_time.d[row_counter.q] = c{14x{b1},11x{b0}};
+                if (next_level) output_matrix.d[rc.q - 1] = b0;
+                prev_row.d = storage_matrix.q[rc.q - 1];
+                level_state.d = level_state.ROW_SHIFT;
+            
+            level_state.ROW_SHIFT:
+                init_matrix.d[rc.q] = init_blk.blk;        
+                ctl_start_signals.d[rc.q] = b1;
+                stop_time.d[rc.q] = rom_stop_time.out;
+                output_matrix.d[rc.q] = ctl.colors_out[rc.q];
+                if (ctl.stop[rc.q]) {
+                    level_state.d = level_state.ROW_AND;
                 }
-
-                output_array.d[row_counter.q] = ctl.colors_out[row_counter.q];
-                if (ctl.stop[row_counter.q]) {
-                    level_state.d = level_state.ROW_END;
-                }
+        
+            level_state.ROW_AND:
+                alufn.d = b011000;
+                alu_a.d = storage_matrix.q[rc.q - 1];
+                alu_b.d = output_matrix.q[rc.q];
+                level_state.d = level_state.ROW_END;
                 
             level_state.ROW_END:
-                output_array.d[row_counter.q] = output_array.q[row_counter.q - 1] & output_array.q[row_counter.q];
-                if (output_array.q[row_counter.q] == b0) {
-                    // go to game over
+                storage_matrix.d[rc.q] = alu.alu[4:0];
+                output_matrix.d[rc.q] = alu.alu[4:0];
+                level_state.d = level_state.CHECK;
+            
+            level_state.CHECK:
+                if (storage_matrix.q[rc.q] == b0) {
+                    rc.d = 0;
+                    level_state.d = level_state.GAME_OVER;
+                } else if (rc.q == 10) {
+                    rc.d = 0;
+                    level_state.d = level_state.LEVEL_END;
                 } else {
-                    row_counter.d = row_counter.q + 1;
+                    rc.d = rc.q + 1;
                     level_state.d = level_state.ROW_INIT;
-                }                    
+                }
+        
+            level_state.LEVEL_END:
+                level_end_temp.d = 1;
+      
+            level_state.GAME_OVER:
+                level_end_temp.d = 2;
         }
     }
 }

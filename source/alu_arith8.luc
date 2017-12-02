@@ -13,7 +13,6 @@ module alu_arith8 (
     sig xb[8];
 
     always {
-        temp_arith = 0;
         xb = b ^ 8x{alufn[0]};
 
         // if ALUFN[0] is 0, do ADD
@@ -30,6 +29,6 @@ module alu_arith8 (
         v = ((a[7] & xb[7] & !temp_arith[7]) || (!a[7] & !xb[7] & temp_arith[7]));
         n = temp_arith[7];
     
-        arith = temp_arith;   
+        arith = temp_arith;
     }
 }

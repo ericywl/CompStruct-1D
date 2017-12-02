@@ -21,7 +21,7 @@ module control_man_stage3 #(
         dff storage[ROWS][BIT_NUM];
         dff output_array[ROWS][BIT_NUM];
         dff row_counter[$clog2(ROWS) + 1];
-        dff stop_time[ROWS][25];
+        dff stop_time[ROWS][24];
     }
 
     always {

@@ -6,12 +6,13 @@ module control_man_stage2 #(
         input rst,    // reset
         input button,
         input start,
-        output matrix[ROWS][COLUMNS]
+        output matrix[ROWS][COLUMNS],
+        output end[2]
     ) {
   
     const BIT_NUM = COLUMNS;
     const START_BLK_SIZE = (COLUMNS / 2) + 1;
-    const START_EMPTY = COLUMNS - START_BLK_SIZE;
+    const START_EMPTY = COLUMNS - START_BLK_SIZE;  
     
     .clk(clk), .rst(rst) {
         control ctl[ROWS](#SIZE(COLUMNS), .button(button));
@@ -24,7 +25,9 @@ module control_man_stage2 #(
         dff storage[ROWS][BIT_NUM];
         dff row_counter[$clog2(ROWS) + 1];
         dff check_bits[BIT_NUM];
-        dff stop_time[ROWS][25];
+        dff stop_time[ROWS][24];
+    
+        dff end_signal[2];
     }
 
     always {
@@ -33,6 +36,7 @@ module control_man_stage2 #(
         ctl.start = start_signals.q;
         chk.check_bits = check_bits.q;
         ctl.stop_time = stop_time.q;
+        end = end_signal.q;
     
         case(level_state.q) {
             level_state.IDLE:
@@ -72,7 +76,7 @@ module control_man_stage2 #(
                 storage.d[row_counter.q] = storage.q[row_counter.q - 1] & storage.q[row_counter.q];
                 output_array.d[row_counter.q] = b0;
                 if (output_array.q[row_counter.q] == b0) {
-                    // go to game over
+                     end_signal.d = b01;
                 } else {
                     row_counter.d = row_counter.q + 1;
                     level_state.d = level_state.ROW_INIT;
