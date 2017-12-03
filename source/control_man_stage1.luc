@@ -5,6 +5,7 @@ module control_man_stage1 #(
         input clk,    // clock
         input rst,    // reset
         input button,
+        input start,
         input next_level,
         output matrix[ROWS][COLUMNS],
         output level_end[2]
@@ -52,7 +53,7 @@ module control_man_stage1 #(
     
         case(level_state.q) {
             level_state.IDLE:
-                if (button) {
+                if (start) {
                     level_state.d = level_state.START;
                 }
             

@@ -2,7 +2,6 @@ module led_ws2812b #(
         SIZE = 5 : SIZE > 0
     )(
         input clk,                // clock
-        input rst,                // reset
         input colors[SIZE * 24],  // the colors to output in bits
         output data_out           // the bit-data that's going to the LEDs
     ) {
@@ -10,14 +9,13 @@ module led_ws2812b #(
     const BIT_NUM = SIZE * 24;
   
     .clk(clk) {
-        .rst(rst) {
+
             dff timer[7];                                // used to time the bit-banging
             dff color_bit_index[$clog2(BIT_NUM) + 1];    // the index of the color bit that we are sending
             dff bit;                                     // the outgoing bit
             dff pause[17];                               // timer for the pause between bit-bangs
             
             fsm state = {ONE, ZERO, PAUSE};
-         }
     }
   
     always {

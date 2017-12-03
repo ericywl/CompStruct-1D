@@ -30,19 +30,21 @@ module mojo_top (
     .clk(clk) {
         reset_conditioner reset_cond;
         button_conditioner button_cond;
-        fsm game_state = {STAGE1, STAGE2, LOSE, WIN, END};
+        
+        fsm game_state = {IDLE, STAGE1, TRANSITION, STAGE2, LOSE, WIN, END, RESET};
         dff reset;
+        dff start;
+        dff next_level;
+        dff timer[24];
+        dff color[24];
+        dff led_matrix_temp[ROWS][COLUMNS];
         .rst(rst) {
             // control_man ctl_man(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(io_button[1]));
             // led_matrix led_matrix(#COLUMNS(COLUMNS), #ROWS(ROWS));
-            led_matrix led_matrix(#COLUMNS(COLUMNS), #ROWS(ROWS));
             control_man_stage1 ctl_man1(#COLUMNS(COLUMNS), #ROWS(ROWS), .button(button));
-            // control_man_stage2 ctl_man2(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(brb));
+            led_matrix led_matrix(#COLUMNS(COLUMNS), #ROWS(ROWS));
+            // control_man_stage1 ctl_man2(#COLUMNS(COLUMNS), #ROWS(ROWS), .button(button));
             // control_man_stage3 ctl_man3(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(io_button[1]));
-
-            dff next_level;
-            dff color[24];
-            dff led_matrix_temp[ROWS][COLUMNS];
         }
     }
     
@@ -58,6 +60,7 @@ module mojo_top (
         spi_channel = bzzzz;        // not using flags
         avr_rx = bz;                // not using serial port
     
+        ctl_man1.start = start.q;
         ctl_man1.next_level = next_level.q;
     
         led_matrix.color = color.q;
@@ -65,22 +68,39 @@ module mojo_top (
         led_data = led_matrix.led_data;
     
         case(game_state.q) {
-            game_state.STAGE1:
+            game_state.IDLE:
                 reset.d = b0;
                 color.d = Color.GREEN;
-                next_level.d = 0;
+                led_matrix_temp.d = 11x{{b11111}};
+                if (button) {
+                    start.d = b1;
+                    game_state.d = game_state.STAGE1;
+                }
+            
+      
+            game_state.STAGE1:
+                color.d = Color.GREEN;
+                next_level.d = b0;
                 led_matrix_temp.d = ctl_man1.matrix;
                 if (ctl_man1.level_end == 1) {
-                    reset.d = b1;
-                    game_state.d = game_state.STAGE2;
+                    game_state.d = game_state.TRANSITION;
                 } else if (ctl_man1.level_end == 2) {
                     game_state.d = game_state.LOSE;
                 }
+        
+            game_state.TRANSITION:
+                reset.d = b1;
+                timer.d = timer.q + 1;
+                if (timer.q == 24x{b1}) {
+                    reset.d = b0;
+                    next_level.d = b1;
+                    start.d = b1;
+                    game_state.d = game_state.STAGE2;
+                }
                 
             game_state.STAGE2:
-                reset.d = b0;
                 color.d = Color.BLUE;
-                next_level.d = 1;
+                next_level.d = b1;
                 led_matrix_temp.d = ctl_man1.matrix;
                 if (ctl_man1.level_end == 1) {
                     game_state.d = game_state.WIN;
@@ -89,20 +109,32 @@ module mojo_top (
                 }
         
             game_state.LOSE:
-                reset.d = b0;
                 color.d = Color.RED;
+                next_level.d = b0;
+                start.d = b0;
                 led_matrix_temp.d = rom_game_over.out;
-                game_state.d = game_state.END;
-        
-            // not working properly
-            game_state.END:
-                reset.d = b0;
-                led_matrix_temp.d = rom_game_over.out;
-                if (button) {
-                    reset.d = b1;
-                    game_state.d = game_state.STAGE1;
+                timer.d = timer.q + 1;
+                if (timer.q == 24x{b1}) {
+                    game_state.d = game_state.END;
                 }
                 
+            // not working properly
+            game_state.END:
+                color.d = Color.RED;
+                led_matrix_temp.d = led_matrix_temp.q;
+                if (button) {
+                    game_state.d = game_state.RESET;
+                }
+        
+            game_state.RESET:
+                reset.d = b1;
+                timer.d = timer.q + 1;
+                if (timer.q == 24x{b1}) {
+                    reset.d = b0;
+                    next_level.d = b0;
+                    start.d = b0;
+                    game_state.d = game_state.IDLE;
+                } 
         }  
     }
 }
