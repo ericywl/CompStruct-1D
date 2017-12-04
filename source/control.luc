@@ -11,6 +11,8 @@ module control #(
         output stop
     ) {
     
+    alu8 alu;
+  
     .clk(clk), .rst(rst){
         fsm state = {START, SHL, SHR};
         fsm buttonstate = {UNPRESSED, PRESSED};
@@ -19,9 +21,17 @@ module control #(
         dff temp[SIZE];
         dff stop_signal;
         dff shifting;
+    
+        dff alufn[6];
+        dff alu_a[8];
+        dff alu_b[8];
     }
     
     always {
+        alu.alufn = alufn.q;
+        alu.a = alu_a.q;
+        alu.b = alu_b.q;
+        
         timer.d = timer.q + 1;
         stop = stop_signal.q;
         colors_out = temp.q;
@@ -42,21 +52,36 @@ module control #(
                              if (start) {
                                  temp.d = start_row;
                                  shifting.d = b1;
-                                 if (temp.q[SIZE - 1]) state.d = state.SHR;
-                                 else state.d = state.SHL;
+                                 if (temp.q[SIZE - 1]) {
+                                     alufn.d = b100001;
+                                     alu_a.d = temp.q;
+                                     alu_b.d = b1;
+                                     state.d = state.SHR;
+                                 } else {
+                                     alufn.d = b100000;
+                                     alu_a.d = temp.q;
+                                     alu_b.d = b1;
+                                     state.d = state.SHL;
+                                 }
                              }
                                 
                         state.SHL:
                              if (temp.q[SIZE - 1]) {
-                                 temp.d = temp.q >> b1;
+                                 // SHR
+                                 alufn.d = b100001;
+                                 alu_a.d = temp.q;
+                                 alu_b.d = b1;
                                  state.d = state.SHR;
                              } else {
-                                 temp.d = temp.q << b1;
+                                 temp.d = alu.alu[4:0];
                              }
                                   
                         state.SHR:
                              if (temp.q[0]) {
-                                 temp.d = temp.q << b1;
+                                 // SHL
+                                 alufn.d = b100000;
+                                 alu_a.d = temp.q;
+                                 alu_b.d = b1;
                                  state.d = state.SHL;
                              } else {
                                  temp.d = temp.q >> b1;

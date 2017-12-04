@@ -13,9 +13,9 @@
     <src>control_man.luc</src>
     <src>alu_arith8.luc</src>
     <src>init_blk.luc</src>
-    <src>led_matrix.luc</src>
-    <src>led_ws2812b.luc</src>
     <src>alu_bool8.luc</src>
+    <src>led_ws2812b.luc</src>
+    <src>led_matrix.luc</src>
     <ucf>stackoverflow.ucf</ucf>
     <ucf lib="true">mojo.ucf</ucf>
     <component>reset_conditioner.luc</component>

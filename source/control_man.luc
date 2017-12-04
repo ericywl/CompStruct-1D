@@ -1,4 +1,4 @@
-module control_man_stage1 #(
+module control_man #(
         ROWS = 11 : 0 < ROWS < 12,
         COLUMNS = 5 : 0 < COLUMNS < 6
     )(

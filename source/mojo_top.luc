@@ -42,7 +42,7 @@ module mojo_top (
         dff color[24];
         dff led_matrix_temp[ROWS][COLUMNS];
         .rst(rst) {
-            control_man_stage1 ctl_man1(#COLUMNS(COLUMNS), #ROWS(ROWS), .button(button));
+            control_man ctl_man(#COLUMNS(COLUMNS), #ROWS(ROWS), .button(button));
             led_matrix led_matrix(#COLUMNS(COLUMNS), #ROWS(ROWS)); 
         }
     }
@@ -59,8 +59,8 @@ module mojo_top (
         spi_channel = bzzzz;        // not using flags
         avr_rx = bz;                // not using serial port
     
-        ctl_man1.start = start.q;
-        ctl_man1.next_level = next_level.q;
+        ctl_man.start = start.q;
+        ctl_man.next_level = next_level.q;
     
         led_matrix.color = color.q;
         led_matrix.matrix = led_matrix_temp.q;
@@ -81,10 +81,10 @@ module mojo_top (
             game_state.STAGE1:
                 color.d = Color.GREEN;
                 next_level.d = b0;
-                led_matrix_temp.d = ctl_man1.matrix;
-                if (ctl_man1.level_end == 1) {
+                led_matrix_temp.d = ctl_man.matrix;
+                if (ctl_man.level_end == 1) {
                     game_state.d = game_state.TRANSITION;
-                } else if (ctl_man1.level_end == 2) {
+                } else if (ctl_man.level_end == 2) {
                     game_state.d = game_state.LOSE;
                 }
         
@@ -104,10 +104,10 @@ module mojo_top (
             game_state.STAGE2:
                 color.d = Color.BLUE;
                 next_level.d = b1;
-                led_matrix_temp.d = ctl_man1.matrix;
-                if (ctl_man1.level_end == 1) {
+                led_matrix_temp.d = ctl_man.matrix;
+                if (ctl_man.level_end == 1) {
                     game_state.d = game_state.WIN;
-                } else if (ctl_man1.level_end == 2) {
+                } else if (ctl_man.level_end == 2) {
                     game_state.d = game_state.LOSE;
                 }
         
