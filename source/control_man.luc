@@ -18,9 +18,10 @@ module control_man_stage1 #(
         control ctl[ROWS](#SIZE(COLUMNS), .button(button));
         init_blk init_blk(#SIZE(5));
         
-        fsm level_state = {IDLE, START, ROW_INIT, ROW_SHIFT, ROW_AND, ROW_END, CHECK, LEVEL_END, GAME_OVER};
+        fsm level_state = {IDLE, START, ROW_DELAY, ROW_INIT, ROW_SHIFT, ROW_AND, ROW_END, CHECK, LEVEL_END, GAME_OVER};
         dff ctl_start_signals[ROWS];
         dff stop_time[ROWS][24];
+        dff timer[23];
         
         dff init_matrix[ROWS][COLUMNS];
         dff storage_matrix[ROWS][COLUMNS];
@@ -57,6 +58,7 @@ module control_man_stage1 #(
                     level_state.d = level_state.START;
                 }
             
+            // first row has its own state because it will always be stacked
             level_state.START:
                 ctl_start_signals.d[0] = b1;
                 stop_time.d[0] = hFFFFFF;
@@ -65,14 +67,20 @@ module control_man_stage1 #(
                 output_matrix.d[0] = ctl.colors_out[0];
                 if (ctl.stop[0]) {
                     rc.d = 1;
-                    level_state.d = level_state.ROW_INIT;
+                    level_state.d = level_state.ROW_DELAY;
                 }
+        
+            level_state.ROW_DELAY:
+                timer.d = timer.q + 1;
+                if (timer.q[22] == b1) level_state.d = level_state.ROW_INIT;
                 
+            // initialize the block based on previous block and row index
             level_state.ROW_INIT:
                 if (next_level) output_matrix.d[rc.q - 1] = b0;
                 prev_row.d = storage_matrix.q[rc.q - 1];
                 level_state.d = level_state.ROW_SHIFT;
             
+            // shifting the block (happens in controls)
             level_state.ROW_SHIFT:
                 init_matrix.d[rc.q] = init_blk.blk;        
                 ctl_start_signals.d[rc.q] = b1;
@@ -82,17 +90,20 @@ module control_man_stage1 #(
                     level_state.d = level_state.ROW_AND;
                 }
         
+            // AND the current and previous block
             level_state.ROW_AND:
                 alufn.d = b011000;
                 alu_a.d = storage_matrix.q[rc.q - 1];
                 alu_b.d = output_matrix.q[rc.q];
                 level_state.d = level_state.ROW_END;
                 
+            // store and display the result
             level_state.ROW_END:
                 storage_matrix.d[rc.q] = alu.alu[4:0];
                 output_matrix.d[rc.q] = alu.alu[4:0];
                 level_state.d = level_state.CHECK;
             
+            // check for win or lose condition
             level_state.CHECK:
                 if (storage_matrix.q[rc.q] == b0) {
                     rc.d = 0;
@@ -102,12 +113,14 @@ module control_man_stage1 #(
                     level_state.d = level_state.LEVEL_END;
                 } else {
                     rc.d = rc.q + 1;
-                    level_state.d = level_state.ROW_INIT;
+                    level_state.d = level_state.ROW_DELAY;
                 }
         
+            // win current stage
             level_state.LEVEL_END:
                 level_end_temp.d = 1;
       
+            // lose
             level_state.GAME_OVER:
                 level_end_temp.d = 2;
         }

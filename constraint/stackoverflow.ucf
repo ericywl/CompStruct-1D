@@ -9,4 +9,4 @@ NET "led_data<7>" LOC = P141 | IOSTANDARD = LVTTL;
 NET "led_data<8>" LOC = P137 | IOSTANDARD = LVTTL;
 NET "led_data<9>" LOC = P131 | IOSTANDARD = LVTTL;
 NET "led_data<10>" LOC = P123 | IOSTANDARD = LVTTL;
-NET "brb" LOC = P58 | IOSTANDARD = LVTTL;
+NET "big_red_button" LOC = P58 | IOSTANDARD = LVTTL;

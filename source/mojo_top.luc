@@ -3,6 +3,7 @@ global Color {
     const RED = h00DD00;
     const GREEN = h0000DD;
     const BLUE = hDD0000;
+    const YELLOW = h00CCCC;
     const WHITE = h888888;
     const BLACK = h000000;
 }
@@ -15,14 +16,16 @@ module mojo_top (
         output spi_channel [4],     // AVR general purpose pins (used by default to select ADC channel)
         output avr_rx,              // AVR RX (FPGA TX)
         output led_data[11],
-        input brb
+        input big_red_button
     ) {
   
     sig rst;    // reset signal
     sig button;
-    rom_game_over rom_game_over;
+    rom_screen_idle rom_screen_idle;
+    rom_screen_lose rom_screen_lose;
+    rom_screen_win win_screen;
     
-    // led_matrix and check_size are hardcoded, 
+    // led_matrix and init_blk are hardcoded, 
     // need to change if these constants change
     const COLUMNS = 5;
     const ROWS = 11;
@@ -35,16 +38,12 @@ module mojo_top (
         dff reset;
         dff start;
         dff next_level;
-        dff timer[24];
+        dff timer[28];
         dff color[24];
         dff led_matrix_temp[ROWS][COLUMNS];
         .rst(rst) {
-            // control_man ctl_man(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(io_button[1]));
-            // led_matrix led_matrix(#COLUMNS(COLUMNS), #ROWS(ROWS));
             control_man_stage1 ctl_man1(#COLUMNS(COLUMNS), #ROWS(ROWS), .button(button));
-            led_matrix led_matrix(#COLUMNS(COLUMNS), #ROWS(ROWS));
-            // control_man_stage1 ctl_man2(#COLUMNS(COLUMNS), #ROWS(ROWS), .button(button));
-            // control_man_stage3 ctl_man3(#COLUMNS(COLUMNS), #ROWS(ROWS), .start(io_button[0]), .button(io_button[1]));
+            led_matrix led_matrix(#COLUMNS(COLUMNS), #ROWS(ROWS)); 
         }
     }
     
@@ -52,7 +51,7 @@ module mojo_top (
         reset_cond.in = reset.q;
         rst = reset_cond.out;
         
-        button_cond.in = brb;
+        button_cond.in = big_red_button;
         button = button_cond.out;
     
         led = 8h00;                 // turn LEDs off
@@ -68,16 +67,17 @@ module mojo_top (
         led_data = led_matrix.led_data;
     
         case(game_state.q) {
+            // idle screen
             game_state.IDLE:
                 reset.d = b0;
-                color.d = Color.GREEN;
-                led_matrix_temp.d = 11x{{b11111}};
+                color.d = Color.YELLOW;
+                led_matrix_temp.d = rom_screen_idle.out;
                 if (button) {
                     start.d = b1;
                     game_state.d = game_state.STAGE1;
                 }
             
-      
+            // stage 1: normal
             game_state.STAGE1:
                 color.d = Color.GREEN;
                 next_level.d = b0;
@@ -88,16 +88,19 @@ module mojo_top (
                     game_state.d = game_state.LOSE;
                 }
         
+            // transition to reset the control man and controls
             game_state.TRANSITION:
                 reset.d = b1;
                 timer.d = timer.q + 1;
-                if (timer.q == 24x{b1}) {
+                if (timer.q[24] == b1) {
+                    timer.d = b0;
                     reset.d = b0;
                     next_level.d = b1;
                     start.d = b1;
                     game_state.d = game_state.STAGE2;
                 }
                 
+            // stage 2: disappearing traces
             game_state.STAGE2:
                 color.d = Color.BLUE;
                 next_level.d = b1;
@@ -108,28 +111,47 @@ module mojo_top (
                     game_state.d = game_state.LOSE;
                 }
         
+            // lose screen
             game_state.LOSE:
                 color.d = Color.RED;
                 next_level.d = b0;
                 start.d = b0;
-                led_matrix_temp.d = rom_game_over.out;
+                led_matrix_temp.d = rom_screen_lose.out;
                 timer.d = timer.q + 1;
-                if (timer.q == 24x{b1}) {
+                if (timer.q[24] == b1) {
+                    timer.d = b0;
                     game_state.d = game_state.END;
                 }
-                
-            // not working properly
+        
+            // win screen
+            game_state.WIN:
+                color.d = Color.RED;
+                next_level.d = b0;
+                start.d = b0;
+                led_matrix_temp.d = win_screen.out;
+                timer.d = timer.q + 1;
+                if (timer.q[24] == b1) {
+                    timer.d = b0;
+                    game_state.d = game_state.END;
+                }
+            
+            // wait for user input to go back IDLE
+            // alternatively go back after some time   
             game_state.END:
                 color.d = Color.RED;
                 led_matrix_temp.d = led_matrix_temp.q;
-                if (button) {
+                timer.d = timer.q + 1;
+                if (button || timer.q[27] == b1) {
+                    timer.d = b0;
                     game_state.d = game_state.RESET;
                 }
         
+            // reset the game
             game_state.RESET:
                 reset.d = b1;
                 timer.d = timer.q + 1;
-                if (timer.q == 24x{b1}) {
+                if (timer.q[24] == b1) {
+                    timer.d = b0;
                     reset.d = b0;
                     next_level.d = b0;
                     start.d = b0;

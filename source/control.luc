@@ -26,6 +26,7 @@ module control #(
         stop = stop_signal.q;
         colors_out = temp.q;
         
+        // if block is shitfing, press button to stop it
         if (button && shifting.q) {
             buttonstate.d = buttonstate.PRESSED;
             stop_signal.d = b1;

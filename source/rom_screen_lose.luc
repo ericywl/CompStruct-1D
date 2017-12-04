@@ -1,4 +1,4 @@
-module rom_game_over (
+module rom_screen_lose (
         output out[11][5]
     ) {
 
