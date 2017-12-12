@@ -5,20 +5,18 @@ module rom_stop_time (
 
     always {
         case(index) {
-            0: out = hDDDDDD;
-            1: out = hCCCCCC;
+            0: out = hCCCCCC;
+            1: out = hBBBBBB;
             2: out = hAAAAAA;
-            3: out = h96B333;
-            4: out = h83FFFF;
-            5: out = h749DDD;
-            6: out = h6890CC;
-            7: out = h62255B;
-            8: out = h598800;
+            3: out = h83FFFF;
+            4: out = h749DDD;
+            5: out = h6890CC;
+            6: out = h62255B;
+            7: out = h605A3E;
+            8: out = h56970C;
             9: out = h541111;
             10: out = h541111;
             default: out = hFFFFFF;
         }
-    
-    
     }
 }

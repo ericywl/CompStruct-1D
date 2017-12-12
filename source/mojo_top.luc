@@ -3,7 +3,7 @@ global Color {
     const RED = h00DD00;
     const GREEN = h0000DD;
     const BLUE = hDD0000;
-    const YELLOW = h00CCCC;
+    const YELLOW = h008888;
     const WHITE = h888888;
     const BLACK = h000000;
 }
@@ -125,7 +125,7 @@ module mojo_top (
         
             // win screen
             game_state.WIN:
-                color.d = Color.RED;
+                color.d = Color.GREEN;
                 next_level.d = b0;
                 start.d = b0;
                 led_matrix_temp.d = win_screen.out;
